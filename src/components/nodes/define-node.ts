@@ -39,6 +39,10 @@ type ControlsContext = Pick<
   CustomControlsProps<Record<never, never>>,
   'id' | 'isPlaying' | 'isMuted'
 >;
+/** The patch tempo: beats per minute and beats per cycle. */
+export type Tempo = { bpm: number; bpc: number };
+export const DEFAULT_TEMPO: Tempo = { bpm: 120, bpc: 4 };
+
 /** A control this node sets that a node downstream could replace. */
 export type CarriedControl = { call: string; label: string };
 /** How override detection should read a node it can't infer from its code. */
@@ -66,6 +70,7 @@ export type NodeDefinition = {
     data: Record<string, unknown>,
     input: string,
     inputs?: Record<string, string>,
+    tempo?: Tempo,
   ) => string;
   /** Extra points to measure silently: meter key → code at that point. */
   meters?: (
@@ -125,6 +130,7 @@ export function defineNode<
       data: Record<string, unknown>;
       /** Input per port (`''` when unwired); empty for nodes without ports. */
       inputs: Record<string, string>;
+      tempo: Tempo;
     },
   ) => string;
   meters?: (
@@ -182,8 +188,8 @@ export function defineNode<
         write ? write(resolve({}), {}) : parameterValues(parameters, {}),
       ),
     },
-    generatePattern: (data, input, inputs = {}) =>
-      generate(resolve(data), input, { parameters, data, inputs }),
+    generatePattern: (data, input, inputs = {}, tempo = DEFAULT_TEMPO) =>
+      generate(resolve(data), input, { parameters, data, inputs, tempo }),
     meters: meters && ((data, inputs) => meters(resolve(data), inputs)),
     overrides: overrides && {
       carries: (data) => overrides.carries(resolve(data)),
