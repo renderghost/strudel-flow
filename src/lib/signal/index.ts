@@ -9,14 +9,17 @@ import { compilePatch, type CompiledPatch } from './compile';
 import {
   checkConnection,
   dropRefusal,
+  roleOf,
   OUTPUT_TYPE,
   type ConnectionCheck,
 } from './graph';
 import { migrateGraph } from './migrate';
 import { findOverrides } from './override';
+import { instrumentsFeeding as feeding } from './sources';
 
 export type { CompiledPatch } from './compile';
 export { MIGRATION_NOTICE } from './migrate';
+export { colourOf } from './sources';
 
 export function compile(
   nodes: AppNode[],
@@ -70,4 +73,17 @@ export function migrate(graph: GraphSnapshot): {
   return migrateGraph(graph, nodeDefinitions, (position) =>
     createNodeByType({ type: OUTPUT_TYPE, position }),
   );
+}
+
+export function instrumentsFeeding(
+  nodeId: string,
+  port: string | null,
+  nodes: AppNode[],
+  edges: Edge[],
+): AppNode[] {
+  return feeding(nodeId, port, nodes, edges, nodeDefinitions);
+}
+
+export function isInstrument(node: AppNode): boolean {
+  return roleOf(node, nodeDefinitions) === 'instrument';
 }

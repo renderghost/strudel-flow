@@ -13,7 +13,7 @@ import {
 
 import type { AppNode } from '@/components/nodes/registry';
 import { initialEdges, initialNodes } from '@/data/workflow-data';
-import { check } from '@/lib/signal';
+import { check, isInstrument } from '@/lib/signal';
 import { OUTPUT_TYPE } from '@/lib/signal/graph';
 import { withoutProtectedRemovals } from '@/lib/signal/protect';
 
@@ -45,6 +45,7 @@ type AppActions = {
   onNodesChange: OnNodesChange<AppNode>;
   removeNode: (nodeId: string) => void;
   setMuted: (nodeId: string, muted: boolean) => void;
+  setColour: (nodeId: string, colour: number | null) => void;
   updateNodeData: (nodeId: string, updates: Record<string, unknown>) => void;
   onConnect: OnConnect;
   setTheme: (theme: string) => void;
@@ -100,6 +101,17 @@ export const useAppStore = create<AppStore>()(
               ),
             },
       ),
+
+    setColour: (nodeId, colour) =>
+      set((state) => ({
+        nodes: state.nodes.map((node) => {
+          if (node.id !== nodeId || !isInstrument(node)) return node;
+          const data: Record<string, unknown> = { ...node.data };
+          if (colour === null) delete data.colour;
+          else data.colour = colour;
+          return { ...node, data } as typeof node;
+        }),
+      })),
 
     setMuted: (nodeId, muted) =>
       set((state) => ({
