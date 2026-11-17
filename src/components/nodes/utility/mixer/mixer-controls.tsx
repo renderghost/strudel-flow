@@ -126,8 +126,8 @@ export function MixerKnob({ origin, display, ...props }: KnobProps) {
     <div className="flex flex-col items-center gap-0.5">
       <MixerSlider
         {...props}
-        pixelsPerTravel={150}
-        className="grid size-7 place-items-center rounded-full"
+        pixelsPerTravel={200}
+        className="grid size-14 place-items-center rounded-full"
       >
         {(position) => {
           const start = Math.min(origin, position) * 75;
@@ -158,16 +158,16 @@ export function MixerKnob({ origin, display, ...props }: KnobProps) {
               </svg>
               <span
                 aria-hidden="true"
-                className="absolute inset-1.5 rounded-full border border-muted-foreground/20 bg-secondary"
+                className="absolute inset-3 rounded-full border border-muted-foreground/20 bg-secondary"
                 style={{ transform: `rotate(${-135 + position * 270}deg)` }}
               >
-                <span className="absolute top-0.5 left-1/2 h-1.5 w-0.5 -translate-x-1/2 rounded-full bg-primary" />
+                <span className="absolute top-1 left-1/2 h-3 w-1 -translate-x-1/2 rounded-full bg-primary" />
               </span>
             </>
           );
         }}
       </MixerSlider>
-      <span className="font-mono text-[9px] leading-none text-muted-foreground tabular-nums">
+      <span className="font-mono text-[11px] leading-none text-muted-foreground tabular-nums">
         {display}
       </span>
     </div>
@@ -181,22 +181,22 @@ type FaderProps = Omit<SliderProps, 'children'> & {
 
 export function MixerFader({ unity, ...props }: FaderProps) {
   return (
-    <MixerSlider {...props} className="h-full w-4">
+    <MixerSlider {...props} className="h-full w-8">
       {(position) => (
         <>
           <span
             aria-hidden="true"
-            className="absolute inset-y-1 left-1/2 w-0.5 -translate-x-1/2 rounded-full bg-muted-foreground/30"
+            className="absolute inset-y-2 left-1/2 w-1 -translate-x-1/2 rounded-full bg-muted-foreground/30"
           />
           <span
             aria-hidden="true"
-            className="absolute left-0 h-px w-1 bg-muted-foreground/70"
-            style={{ bottom: `calc(${unity} * (100% - 8px) + 4px)` }}
+            className="absolute left-0 h-px w-2 bg-muted-foreground/70"
+            style={{ bottom: `calc(${unity} * (100% - 16px) + 8px)` }}
           />
           <span
             aria-hidden="true"
-            className="absolute left-1/2 h-2 w-4 -translate-x-1/2 translate-y-1/2 rounded-sm border border-foreground/60 bg-card"
-            style={{ bottom: `calc(${position} * (100% - 8px) + 4px)` }}
+            className="absolute left-1/2 h-4 w-8 -translate-x-1/2 translate-y-1/2 rounded-sm border border-foreground/60 bg-card"
+            style={{ bottom: `calc(${position} * (100% - 16px) + 8px)` }}
           />
         </>
       )}
@@ -225,7 +225,7 @@ export function StripToggle({
       title={label}
       onClick={onClick}
       className={cn(
-        'nodrag grid size-4.5 place-items-center rounded-sm border border-border text-[9px] leading-none font-semibold text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'nodrag grid size-7 place-items-center rounded-md border border-border text-[11px] leading-none font-semibold text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring',
         pressed &&
           tone === 'mute' &&
           'border-amber-500/60 bg-amber-500/20 text-amber-800 dark:text-amber-200',

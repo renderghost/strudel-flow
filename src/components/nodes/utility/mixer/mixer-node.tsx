@@ -35,6 +35,14 @@ const GAIN: SliderRange = { min: GAIN_MIN, max: GAIN_MAX, step: 1, fine: 0.1 };
 const PAN: SliderRange = { min: 0, max: 1, step: 0.05, fine: 0.01 };
 const UNITY = faderToPosition(0);
 
+/** Strip geometry, shared with the input handles on the node's bottom edge. */
+const STRIP_WIDTH = 72;
+const STRIP_GAP = 4;
+/** BaseNode padding (4px) plus this node's own left padding (8px). */
+const STRIPS_LEFT = 12;
+const inputLeft = (index: number) =>
+  STRIPS_LEFT + index * (STRIP_WIDTH + STRIP_GAP) + STRIP_WIDTH / 2;
+
 const short = (db: number, floor = false) =>
   formatDb(db, { floor }).replace(' dB', '');
 const shortPan = (pan: number) => {
@@ -103,8 +111,8 @@ function Strip({
   return (
     <div
       data-channel={number}
-      className="relative flex w-11 flex-col items-center rounded-md pb-2"
-      style={style}
+      className="relative flex flex-col items-center rounded-md pb-2"
+      style={{ ...style, width: STRIP_WIDTH }}
     >
       {tint && (
         <span
@@ -115,11 +123,11 @@ function Strip({
       )}
       <div
         className={cn(
-          'flex w-full flex-col items-center gap-1.5 pt-2',
+          'flex w-full flex-col items-center gap-2 pt-2.5',
           !source.wired && 'opacity-50',
         )}
       >
-        <div className="flex gap-0.5">
+        <div className="flex gap-1">
           <StripToggle
             tone="solo"
             pressed={channel.solo}
@@ -142,7 +150,7 @@ function Strip({
           meterKey={port}
           label={`channel ${number}`}
         />
-        <div className="flex h-28 gap-1">
+        <div className="flex h-56 gap-1.5">
           <MixerFader
             label={`Level, channel ${number}`}
             value={channel.fader}
@@ -156,7 +164,7 @@ function Strip({
           />
           <LevelMeter meters={meters} meterKey={port} />
         </div>
-        <span className="font-mono text-[9px] leading-none text-foreground tabular-nums">
+        <span className="font-mono text-[11px] leading-none text-foreground tabular-nums">
           {short(channel.fader, true)}
         </span>
         <MixerKnob
@@ -179,24 +187,18 @@ function Strip({
           valueText={(value) => formatDb(value)}
           onChange={(gain) => onChange({ gain })}
         />
-        <span className="flex h-3 items-center gap-0.5 text-[10px] font-semibold text-muted-foreground tabular-nums">
+        <span className="flex h-4 items-center gap-1 text-xs font-semibold text-muted-foreground tabular-nums">
           {number}
           {dots.map((colour) => (
             <span
               key={colour}
               aria-hidden="true"
-              className="size-1.5 rounded-full"
+              className="size-2 rounded-full"
               style={{ background: swatch(colour) }}
             />
           ))}
         </span>
       </div>
-      <BaseHandle
-        type="target"
-        id={port}
-        position={Position.Bottom}
-        aria-label={`Channel ${number} input`}
-      />
     </div>
   );
 }
@@ -217,7 +219,7 @@ export function MixerNode({
     });
 
   return (
-    <div className="flex gap-1 px-2 pb-2">
+    <div className="flex px-2 pb-2" style={{ gap: STRIP_GAP }}>
       {values.channels.map((channel, index) => (
         <Strip
           key={PORTS[index]}
@@ -228,13 +230,25 @@ export function MixerNode({
           onChange={(patch) => updateChannel(index, patch)}
         />
       ))}
-      <div aria-hidden="true" className="mx-1 w-px self-stretch bg-border" />
-      <div className="flex w-14 flex-col items-center gap-1.5 pt-2">
-        <span className="h-4.5 text-[9px] leading-[18px] font-semibold tracking-widest text-muted-foreground uppercase">
+      {/* Positioned against the node itself so they hang over its bottom edge,
+          like every other node's handles. */}
+      {PORTS.map((port, index) => (
+        <BaseHandle
+          key={port}
+          type="target"
+          id={port}
+          position={Position.Bottom}
+          aria-label={`Channel ${index + 1} input`}
+          style={{ left: inputLeft(index) }}
+        />
+      ))}
+      <div aria-hidden="true" className="mx-1.5 w-px self-stretch bg-border" />
+      <div className="flex w-20 flex-col items-center gap-2 pt-2.5">
+        <span className="h-7 text-[11px] leading-7 font-semibold tracking-widest text-muted-foreground uppercase">
           Master
         </span>
         <ClipLight meters={meters} meterKey="master" label="master" />
-        <div className="flex h-28 gap-1">
+        <div className="flex h-56 gap-1.5">
           <MixerFader
             label="Master level"
             value={values.master}
@@ -248,7 +262,7 @@ export function MixerNode({
           />
           <LevelMeter meters={meters} meterKey="master" />
         </div>
-        <span className="font-mono text-[9px] leading-none text-foreground tabular-nums">
+        <span className="font-mono text-[11px] leading-none text-foreground tabular-nums">
           {short(values.master, true)}
         </span>
       </div>

@@ -40,7 +40,7 @@ export function LevelMeter({
   return (
     <span
       aria-hidden="true"
-      className="relative block h-full w-1.5 overflow-hidden rounded-[1px] bg-muted"
+      className="relative block h-full w-3 overflow-hidden rounded-[1px] bg-muted"
     >
       <Zones className="opacity-15" />
       <span
@@ -77,7 +77,7 @@ export function ClipLight({
       disabled={!on}
       onClick={() => meters.clear(meterKey)}
       className={cn(
-        'nodrag h-1.5 w-5 rounded-[1px] outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'nodrag h-2 w-10 rounded-[1px] outline-none focus-visible:ring-2 focus-visible:ring-ring',
         on ? 'cursor-pointer bg-red-500' : 'bg-muted',
       )}
     />
