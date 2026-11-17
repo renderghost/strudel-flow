@@ -10,6 +10,11 @@ import {
   type StrudelSession,
 } from '@strudel/web';
 import { setSchedulerNow } from '@/lib/strudel-clock';
+import { pulseHook, pulses } from '@/lib/pulse-bus';
+import { PULSE_HOOK } from '@/lib/pulse-marker';
+
+// Engine code calls this for every note (see compile.ts) so wires can pulse.
+Object.assign(globalThis, { [PULSE_HOOK]: pulseHook(pulses) });
 
 const ready: Promise<StrudelSession> = initStrudel().then(
   (session: StrudelSession) => {
