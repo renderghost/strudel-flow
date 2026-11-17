@@ -63,7 +63,7 @@ export function swatchesFor(
   const start = base.c < GREY_CHROMA ? GREY_START_HUE : base.h;
   const step = background.l > 0.5 ? -0.02 : 0.02;
   return Array.from({ length: SWATCH_COUNT }, (_, k) => {
-    const swatch = {
+    const swatch: Oklch = {
       l: START_LIGHTNESS[mode],
       c: CHROMA,
       h: (start + (360 / SWATCH_COUNT) * k) % 360,
