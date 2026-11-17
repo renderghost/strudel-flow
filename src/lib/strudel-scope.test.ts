@@ -25,7 +25,9 @@ describe('ensureMasterAnalyser', () => {
     ensureMasterAnalyser(deps);
     ensureMasterAnalyser(deps);
     expect(master.connect).toHaveBeenCalledTimes(1);
-    expect(deps.getAnalyserById).toHaveBeenCalledWith(MASTER_SCOPE_ID, 2048);
+    // Same window as superdough's default per-note analyser (fft 8 → 2^13),
+    // so a Scope and the master show the same span of time.
+    expect(deps.getAnalyserById).toHaveBeenCalledWith(MASTER_SCOPE_ID, 8192);
 
     current = analyser();
     ensureMasterAnalyser(deps);

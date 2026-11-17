@@ -23,6 +23,16 @@ describe('patched superdough', () => {
     expect(has('!e.flowtap && Kt > 0')).toBe(true);
   });
 
+  it('silent taps keep their own cut groups', () =>
+    expect(has('const ck = t.flowtap ? `flowtap:${t.analyze}:${a}` : a')).toBe(
+      true,
+    ));
+
+  it('silent taps neither steal nor hold voices', () => {
+    expect(has('!e.flowtap && Me <= Nr.size - sd')).toBe(true);
+    expect(has('e.flowtap || Nr.set(ct, lt)')).toBe(true);
+  });
+
   it('exports the master output', () =>
     expect(/as getMasterOutput\b/.test(bundle)).toBe(true));
 });

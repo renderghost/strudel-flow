@@ -69,7 +69,8 @@ export function compilePatch(
     .filter((tap): tap is { id: string; input: string } => tap.input !== null)
     .map(
       ({ id, input }) =>
-        `$: ${input}.analyze(${JSON.stringify(scopeIdForNode(id))}).${TAP_CONTROL}(1)`,
+        `$: (() => { try { return ${input}; } catch { return silence; } })()` +
+        `.analyze(${JSON.stringify(scopeIdForNode(id))}).${TAP_CONTROL}(1)`,
     );
 
   const bpm = parseInt(tempo.cpm) || 120;

@@ -48,7 +48,7 @@ export function ensureMasterAnalyser(
 ) {
   const master = deps.getMasterOutput();
   if (!master) return;
-  const analyser = deps.getAnalyserById(MASTER_SCOPE_ID, 2048);
+  const analyser = deps.getAnalyserById(MASTER_SCOPE_ID, 2 ** 13);
   if (connected.has(analyser)) return;
   master.connect(analyser);
   connected.add(analyser);

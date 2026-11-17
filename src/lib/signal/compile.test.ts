@@ -71,8 +71,10 @@ describe('compilePatch', () => {
     const S2 = node('s2', 'scope-node');
     const e = (nodes: AppNode[], edges: Edge[]) =>
       compilePatch(nodes, edges, t, definitions).engine;
+    // A tap that throws falls back to silence, so a Scope can never stop
+    // the patch from playing.
     const tap = (expr: string, id: string) =>
-      `$: ${expr}.analyze("flow-scope-${id}").flowtap(1)`;
+      `$: (() => { try { return ${expr}; } catch { return silence; } })().analyze("flow-scope-${id}").flowtap(1)`;
 
     it('are pass-through in portable code', () =>
       expect(c([A, S, O], [edge('a', 's'), edge('s', 'o')])).toBe(
