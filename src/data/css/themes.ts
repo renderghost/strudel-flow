@@ -1,4 +1,5 @@
 import presets from './tweakcn-themes.json';
+import { swatchDeclarations } from '@/lib/instrument-colours';
 
 export const themes = presets.map((preset) => ({
   value: preset.name,
@@ -16,5 +17,6 @@ export const themeStyles: Record<string, string> = {};
 
 for (const preset of presets) {
   themeStyles[preset.name] =
-    `:root{${declarations(preset.light)}}.dark{${declarations(preset.dark)}}`;
+    `:root{${declarations(preset.light)}${swatchDeclarations(preset.light.primary, preset.light.card, 'light')}}` +
+    `.dark{${declarations(preset.dark)}${swatchDeclarations(preset.dark.primary, preset.dark.card, 'dark')}}`;
 }
