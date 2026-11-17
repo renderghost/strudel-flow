@@ -1,8 +1,15 @@
 import type { Edge } from '@xyflow/react';
 import type { AppNode } from '@/components/nodes/types';
-import { scopeIdForNode } from '@/components/nodes/effects/scope/scope';
-import { roleOf, OUTPUT_TYPE, type SignalDefinitions } from './graph';
+import {
+  scopeIdForNode,
+  TAP_CONTROL,
+} from '@/components/nodes/effects/scope/scope';
+import { isProbe, roleOf, OUTPUT_TYPE, type SignalDefinitions } from './graph';
 
+/**
+ * `portable` is what plays and what people copy. `engine` adds one silent tap
+ * per Scope so each Scope can show the signal at its own position.
+ */
 export type CompiledPatch = { engine: string; portable: string };
 
 export function compilePatch(
@@ -36,10 +43,9 @@ export function compilePatch(
         if (inputs.length > 0) {
           const input =
             inputs.length === 1 ? inputs[0] : `stack(${inputs.join(', ')})`;
-          result =
-            definition
-              .generatePattern(node.data, input, scopeIdForNode(id))
-              .trim() || null;
+          result = isProbe(node)
+            ? input
+            : definition.generatePattern(node.data, input).trim() || null;
         }
       }
     } finally {
@@ -57,10 +63,18 @@ export function compilePatch(
         .filter((line): line is string => line !== null)
         .map((line) => `$: ${line}`)
     : [];
-  if (lines.length === 0) return { engine: '', portable: '' };
+  const taps = nodes
+    .filter(isProbe)
+    .map((node) => ({ id: node.id, input: expression(node.id) }))
+    .filter((tap): tap is { id: string; input: string } => tap.input !== null)
+    .map(
+      ({ id, input }) =>
+        `$: ${input}.analyze(${JSON.stringify(scopeIdForNode(id))}).${TAP_CONTROL}(1)`,
+    );
 
   const bpm = parseInt(tempo.cpm) || 120;
   const beatsPerCycle = parseInt(tempo.bpc) || 4;
-  const code = `setcpm(${bpm}/${beatsPerCycle})\n${lines.join('\n')}`;
-  return { engine: code, portable: code };
+  const program = (body: string[]) =>
+    body.length ? `setcpm(${bpm}/${beatsPerCycle})\n${body.join('\n')}` : '';
+  return { engine: program([...lines, ...taps]), portable: program(lines) };
 }

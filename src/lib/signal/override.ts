@@ -54,7 +54,7 @@ function controlsOf(node: AppNode, definitions: SignalDefinitions): string[] {
   const definition = definitions[node.type];
   if (!definition || roleOf(node, definitions) !== 'processor') return [];
   try {
-    const code = definition.generatePattern(node.data, INPUT_SENTINEL, '');
+    const code = definition.generatePattern(node.data, INPUT_SENTINEL);
     if (!code.startsWith(INPUT_SENTINEL)) return [];
     return topLevelCalls(code.slice(INPUT_SENTINEL.length)).filter(
       (call) => !COMPOSING_CALLS.has(call),

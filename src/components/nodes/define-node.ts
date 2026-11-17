@@ -52,11 +52,7 @@ export type NodeDefinition = {
     data: Record<string, unknown>,
     updates: Record<string, unknown>,
   ) => Record<string, unknown>;
-  generatePattern: (
-    data: Record<string, unknown>,
-    input: string,
-    scopeId?: string,
-  ) => string;
+  generatePattern: (data: Record<string, unknown>, input: string) => string;
   renderControls?: (
     data: Record<string, unknown>,
     update: (data: Record<string, unknown>) => void,
@@ -101,7 +97,7 @@ export function defineNode<
   generate: (
     values: D & ParameterValues<P>,
     input: string,
-    context: { parameters: P; scopeId?: string; data: Record<string, unknown> },
+    context: { parameters: P; data: Record<string, unknown> },
   ) => string;
   component?: ComponentType<NodeControlsProps<P, D>>;
 }): NodeDefinition {
@@ -147,12 +143,8 @@ export function defineNode<
         write ? write(resolve({}), {}) : parameterValues(parameters, {}),
       ),
     },
-    generatePattern: (data, input, scopeId) =>
-      generate(resolve(data), input, {
-        parameters,
-        scopeId,
-        data,
-      }),
+    generatePattern: (data, input) =>
+      generate(resolve(data), input, { parameters, data }),
     renderControls: component
       ? (data, update, context) =>
           createElement(component, {

@@ -39,8 +39,7 @@ const scope = defineNode({
   category: 'Audio Effects',
   icon: 'Activity',
   parameters: {},
-  generate: (_values, input, { scopeId }) =>
-    input ? `${input}.analyze("${scopeId}")` : '',
+  generate: (_values, input) => input,
 });
 
 export const definitions: SignalDefinitions = {
