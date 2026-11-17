@@ -15,6 +15,11 @@ import {
 } from './graph';
 import { migrateGraph } from './migrate';
 import { findOverrides } from './override';
+import {
+  audibility,
+  isNotHeard as notHeard,
+  type Audibility,
+} from './audibility';
 import { instrumentsFeeding as feeding } from './sources';
 
 export type { CompiledPatch } from './compile';
@@ -86,4 +91,29 @@ export function instrumentsFeeding(
 
 export function isInstrument(node: AppNode): boolean {
   return roleOf(node, nodeDefinitions) === 'instrument';
+}
+
+let lastAudibility: {
+  nodes: AppNode[];
+  edges: Edge[];
+  result: Audibility;
+} | null = null;
+
+export function audibilityOf(nodes: AppNode[], edges: Edge[]): Audibility {
+  if (lastAudibility?.nodes !== nodes || lastAudibility.edges !== edges) {
+    lastAudibility = {
+      nodes,
+      edges,
+      result: audibility(nodes, edges, nodeDefinitions),
+    };
+  }
+  return lastAudibility.result;
+}
+
+export function isNotHeard(
+  node: AppNode,
+  nodes: AppNode[],
+  edges: Edge[],
+): boolean {
+  return notHeard(node, audibilityOf(nodes, edges), nodeDefinitions);
 }
