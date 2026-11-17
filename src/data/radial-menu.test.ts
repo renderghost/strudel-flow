@@ -20,8 +20,13 @@ const titles = (label: string) =>
   slice(label)?.items.map((node) => node.title) ?? [];
 
 describe('radial menu', () => {
-  it('has a Utility slice with Time, Level and Scope', () =>
-    expect(titles('Utility').sort()).toEqual(['Level', 'Scope', 'Time']));
+  it('has a Utility slice with Time, Level, Scope and the Mixer', () =>
+    expect(titles('Utility').sort()).toEqual([
+      'Level',
+      'Mixer',
+      'Scope',
+      'Time',
+    ]));
 
   it('no longer lists them under Effects', () => {
     const effects = titles('Effects');

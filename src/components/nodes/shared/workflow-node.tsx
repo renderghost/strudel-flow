@@ -46,10 +46,23 @@ function WorkflowNode({
   const removeNode = useAppStore((state) => state.removeNode);
   const setMuted = useAppStore((state) => state.setMuted);
   const setColour = useAppStore((state) => state.setColour);
-  const category = nodeDefinitions[type]?.category;
+  const updateNodeData = useAppStore((state) => state.updateNodeData);
+  const definition = nodeDefinitions[type];
+  const category = definition?.category;
   const isInstrument = category === 'Instruments';
   const isOutput = category === 'Output';
-  const isPaused = isInstrument && data.state === 'paused';
+  const hasPorts = Boolean(definition?.ports?.length);
+  // Instruments mute through `state`; other mutable nodes (the mixer) through
+  // `muted`, which migration leaves alone.
+  const isMutable = isInstrument || definition?.mutable === true;
+  const isPaused = isInstrument
+    ? data.state === 'paused'
+    : isMutable && data.muted === true;
+  const kind = isInstrument
+    ? 'instrument'
+    : (definition?.title ?? 'module').toLowerCase();
+  const setPaused = (paused: boolean) =>
+    isInstrument ? setMuted(id, paused) : updateNodeData(id, { muted: paused });
   const colour = isInstrument ? colourOf({ data }) : null;
   const accent =
     colour === null ? undefined : `var(--instrument-${colour + 1})`;
@@ -73,7 +86,7 @@ function WorkflowNode({
           style={{ background: accent }}
         />
       )}
-      {!isInstrument && (
+      {!isInstrument && !hasPorts && (
         <BaseHandle
           position={Position.Left}
           type="target"
@@ -101,11 +114,12 @@ function WorkflowNode({
           {data.title}
         </h3>
         <div className="flex items-center gap-1">
-          {isInstrument && (
+          {isMutable && (
             <Button
               variant="ghost"
-              aria-label={isPaused ? 'Unmute instrument' : 'Mute instrument'}
-              onClick={() => setMuted(id, !isPaused)}
+              aria-label={isPaused ? `Unmute ${kind}` : `Mute ${kind}`}
+              aria-pressed={isPaused}
+              onClick={() => setPaused(!isPaused)}
               className={cn(
                 'nodrag size-7 rounded-md p-1 text-muted-foreground',
                 isPaused &&
@@ -212,11 +226,11 @@ function WorkflowNode({
           <VolumeX className="size-4 shrink-0" aria-hidden="true" />
           <div className="flex-1">
             <p className="text-xs font-semibold">Muted</p>
-            <p className="text-[10px] opacity-80">This instrument is silent</p>
+            <p className="text-[10px] opacity-80">This {kind} is silent</p>
           </div>
           <button
             aria-label={`Unmute ${data.title}`}
-            onClick={() => setMuted(id, false)}
+            onClick={() => setPaused(false)}
             className="nodrag rounded-md border border-amber-600/30 bg-background/70 px-2 py-1.5 text-xs font-semibold hover:bg-background"
           >
             Unmute
