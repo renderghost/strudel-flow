@@ -217,28 +217,3 @@ body,
     var(--border)
   );
 }
-
-/* Wires on a heard path march while playing; notes flash the wire they cross. */
-.flow-wire--live {
-  stroke-dasharray: 6 4;
-  animation: flow-wire-march 0.6s linear infinite;
-}
-
-@keyframes flow-wire-march {
-  to {
-    stroke-dashoffset: -10;
-  }
-}
-
-.flow-wire__pulse {
-  stroke: var(--primary);
-  stroke-width: 2;
-  stroke-linecap: round;
-  opacity: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .flow-wire--live {
-    animation: none;
-  }
-}

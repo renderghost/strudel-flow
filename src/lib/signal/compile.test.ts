@@ -81,25 +81,16 @@ describe('compilePatch', () => {
         'setcpm(120/4)\n$: note("c")',
       ));
 
-    // The audible engine line carries wire markers and the pulse hook.
-    const heard = (expr: string) => `$: ${expr}.onTrigger(flowPulse, false)`;
+    const heard = (expr: string) => `$: ${expr}`;
 
     it('are tapped silently in engine code', () =>
       expect(e([A, S, O], [edge('a', 's'), edge('s', 'o')])).toBe(
-        [
-          'setcpm(120/4)',
-          heard(`note("c").flowMark('fe_a_45_s').flowMark('fe_s_45_o')`),
-          tap('note("c")', 's'),
-        ].join('\n'),
+        ['setcpm(120/4)', heard('note("c")'), tap('note("c")', 's')].join('\n'),
       ));
 
     it('tap a dead-end scope', () =>
       expect(e([A, S, O], [edge('a', 's'), edge('a', 'o')])).toBe(
-        [
-          'setcpm(120/4)',
-          heard(`note("c").flowMark('fe_a_45_o')`),
-          tap('note("c")', 's'),
-        ].join('\n'),
+        ['setcpm(120/4)', heard('note("c")'), tap('note("c")', 's')].join('\n'),
       ));
 
     it('tap a scope with no Output path', () => {
@@ -123,10 +114,7 @@ describe('compilePatch', () => {
       expect(e(nodes, edges)).toBe(
         [
           'setcpm(120/4)',
-          heard(
-            `note("c").flowMark('fe_a_45_s1').flowMark('fe_s1_45_f').fx(2)` +
-              `.flowMark('fe_f_45_s2').flowMark('fe_s2_45_o')`,
-          ),
+          heard('note("c").fx(2)'),
           tap('note("c")', 's1'),
           tap('note("c").fx(2)', 's2'),
         ].join('\n'),
@@ -137,52 +125,6 @@ describe('compilePatch', () => {
       expect(
         e([A, B, S, O], [edge('a', 's'), edge('b', 's'), edge('s', 'o')]),
       ).toContain(tap('stack(note("c"), note("e"))', 's')));
-  });
-
-  describe('note markers', () => {
-    const e = (nodes: AppNode[], edges: Edge[]) =>
-      compilePatch(nodes, edges, t, definitions).engine;
-    const hook = '.onTrigger(flowPulse, false)';
-
-    it('mark every wire a note crosses, in engine code only', () => {
-      const nodes = [A, F, O];
-      const edges = [edge('a', 'f'), edge('f', 'o')];
-      expect(e(nodes, edges)).toBe(
-        `setcpm(120/4)\n$: note("c").flowMark('fe_a_45_f').fx(2).flowMark('fe_f_45_o')${hook}`,
-      );
-      expect(c(nodes, edges)).toBe('setcpm(120/4)\n$: note("c").fx(2)');
-    });
-
-    it('keep each branch of a split to its own markers', () =>
-      expect(
-        e(
-          [A, F, G, O],
-          [edge('a', 'f'), edge('a', 'g'), edge('f', 'o'), edge('g', 'o')],
-        ),
-      ).toBe(
-        [
-          'setcpm(120/4)',
-          `$: note("c").flowMark('fe_a_45_f').fx(2).flowMark('fe_f_45_o')${hook}`,
-          `$: note("c").flowMark('fe_a_45_g').fx(3).flowMark('fe_g_45_o')${hook}`,
-        ].join('\n'),
-      ));
-
-    it('leave muted sources unmarked', () =>
-      expect(
-        e(
-          [muted(A), B, F, O],
-          [edge('a', 'f'), edge('b', 'f'), edge('f', 'o')],
-        ),
-      ).not.toContain('fe_a_45_f'));
-
-    it('leave scope taps unmarked and unhooked', () => {
-      const S = node('s', 'scope-node');
-      const tapLine = e([A, S, O], [edge('a', 's'), edge('s', 'o')])
-        .split('\n')
-        .find((line) => line.includes('flowtap'))!;
-      expect(tapLine).not.toContain('fe_');
-      expect(tapLine).not.toContain('onTrigger');
-    });
   });
 
   it('plays the same notes in engine and portable code', () => {
@@ -199,11 +141,6 @@ describe('compilePatch', () => {
     const audible = r.engine
       .split('\n')
       .filter((line) => !line.includes('flowtap'))
-      .map((line) =>
-        line
-          .replace(/\.flowMark\('fe_[A-Za-z0-9_]+'\)/g, '')
-          .replace('.onTrigger(flowPulse, false)', ''),
-      )
       .join('\n');
     expect(audible).toBe(r.portable);
   });
@@ -216,9 +153,8 @@ describe('compilePatch', () => {
       ),
     ).not.toThrow());
 
-  it('keeps portable code free of engine-only additions', () => {
+  it('returns identical engine and portable code without scopes', () => {
     const r = compilePatch([A, O], [edge('a', 'o')], t, definitions);
-    expect(r.portable).toBe('setcpm(120/4)\n$: note("c")');
-    expect(r.engine).not.toBe(r.portable);
+    expect(r.engine).toBe(r.portable);
   });
 });

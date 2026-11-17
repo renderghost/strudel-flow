@@ -4,13 +4,11 @@ import {
   scopeIdForNode,
   TAP_CONTROL,
 } from '@/components/nodes/effects/scope/scope';
-import { MARK_METHOD, markerFor, PULSE_HOOK } from '@/lib/pulse-marker';
 import { isProbe, roleOf, OUTPUT_TYPE, type SignalDefinitions } from './graph';
 
 /**
- * `portable` is what plays and what people copy. `engine` plays the same notes
- * and adds editor plumbing: per-wire note markers with a trigger hook, so wires
- * can pulse, and one silent tap per Scope so each Scope shows its own position.
+ * `portable` is what plays and what people copy. `engine` adds one silent tap
+ * per Scope so each Scope can show the signal at its own position.
  */
 export type CompiledPatch = { engine: string; portable: string };
 
@@ -22,19 +20,11 @@ export function compilePatch(
 ): CompiledPatch {
   const byId = new Map(nodes.map((node) => [node.id, node]));
 
-  /**
-   * Resolves each node's expression. With `marked`, every wire a note crosses
-   * tags it with an inert marker control so the editor can pulse that wire.
-   */
-  const walker = (marked: boolean) => {
+  /** Resolves each node's expression from the wires feeding it. */
+  const walker = () => {
     const memo = new Map<string, string | null>();
     const resolving = new Set<string>();
-    const through = (edge: Edge): string | null => {
-      const input = expression(edge.source);
-      return input && marked
-        ? `${input}.${MARK_METHOD}('${markerFor(edge.id)}')`
-        : input;
-    };
+    const through = (edge: Edge): string | null => expression(edge.source);
     const expression = (id: string): string | null => {
       if (memo.has(id)) return memo.get(id)!;
       if (resolving.has(id)) return null;
@@ -70,8 +60,7 @@ export function compilePatch(
     return { expression, through };
   };
 
-  const plain = walker(false);
-  const marked = walker(true);
+  const plain = walker();
   const output = nodes.find((node) => node.type === OUTPUT_TYPE);
   const intoOutput = output
     ? edges.filter((edge) => edge.target === output.id)
@@ -80,10 +69,6 @@ export function compilePatch(
     .map(plain.through)
     .filter((line): line is string => line !== null)
     .map((line) => `$: ${line}`);
-  const markedLines = intoOutput
-    .map(marked.through)
-    .filter((line): line is string => line !== null)
-    .map((line) => `$: ${line}.onTrigger(${PULSE_HOOK}, false)`);
   const expression = plain.expression;
 
   const taps = nodes
@@ -101,7 +86,7 @@ export function compilePatch(
   const program = (body: string[]) =>
     body.length ? `setcpm(${bpm}/${beatsPerCycle})\n${body.join('\n')}` : '';
   return {
-    engine: program([...markedLines, ...taps]),
+    engine: program([...lines, ...taps]),
     portable: program(lines),
   };
 }

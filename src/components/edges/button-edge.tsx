@@ -1,4 +1,4 @@
-import { type ReactNode, type Ref } from 'react';
+import { type ReactNode } from 'react';
 
 import {
   BaseEdge,
@@ -16,15 +16,8 @@ export const ButtonEdge = ({
   targetPosition,
   style = {},
   markerEnd,
-  className,
-  pulseRef,
   children,
-}: EdgeProps & {
-  children: ReactNode;
-  className?: string;
-  /** Overlay path the wire flashes when a note passes through it. */
-  pulseRef?: Ref<SVGPathElement>;
-}) => {
+}: EdgeProps & { children: ReactNode }) => {
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -36,21 +29,7 @@ export const ButtonEdge = ({
 
   return (
     <>
-      <BaseEdge
-        path={edgePath}
-        markerEnd={markerEnd}
-        style={style}
-        className={className}
-      />
-      {pulseRef && (
-        <path
-          ref={pulseRef}
-          d={edgePath}
-          className="flow-wire__pulse"
-          fill="none"
-          pointerEvents="none"
-        />
-      )}
+      <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
       <EdgeLabelRenderer>
         <div
           className="nodrag nopan pointer-events-auto absolute"
