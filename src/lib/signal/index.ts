@@ -7,6 +7,7 @@ import {
 import type { GraphSnapshot } from '@/lib/graph-history';
 import { compilePatch, type CompiledPatch } from './compile';
 import {
+  assignPort,
   checkConnection,
   dropRefusal,
   roleOf,
@@ -38,9 +39,16 @@ export function compile(
 export function check(
   nodes: AppNode[],
   edges: Edge[],
-  connection: { source: string; target: string },
+  connection: { source: string; target: string; targetHandle?: string | null },
 ): ConnectionCheck {
   return checkConnection(nodes, edges, connection, nodeDefinitions);
+}
+
+/** Gives a wire into a port-aware node its port (first free) if it has none. */
+export function withPort<
+  C extends { source: string; target: string; targetHandle?: string | null },
+>(connection: C, nodes: AppNode[], edges: Edge[]): C {
+  return assignPort(connection, nodes, edges, nodeDefinitions);
 }
 
 export function refuseDrop(

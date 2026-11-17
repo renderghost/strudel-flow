@@ -13,7 +13,7 @@ import {
 
 import type { AppNode } from '@/components/nodes/registry';
 import { initialEdges, initialNodes } from '@/data/workflow-data';
-import { check, isInstrument } from '@/lib/signal';
+import { check, isInstrument, withPort } from '@/lib/signal';
 import { OUTPUT_TYPE } from '@/lib/signal/graph';
 import { withoutProtectedRemovals } from '@/lib/signal/protect';
 
@@ -128,8 +128,9 @@ export const useAppStore = create<AppStore>()(
     onEdgesChange: (changes) =>
       set({ edges: applyEdgeChanges(changes, get().edges) }),
 
-    onConnect: (connection) => {
+    onConnect: (request) => {
       const { nodes, edges } = get();
+      const connection = withPort(request, nodes, edges);
       const result = check(nodes, edges, connection);
       if (!result.ok) {
         set({ notice: result.reason });
@@ -139,7 +140,9 @@ export const useAppStore = create<AppStore>()(
       set({
         edges: addEdge(
           {
-            id: `${source}-${target}`,
+            id: targetHandle
+              ? `${source}-${target}-${targetHandle}`
+              : `${source}-${target}`,
             source,
             target,
             type: 'default',

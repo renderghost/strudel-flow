@@ -4,7 +4,16 @@ import {
   scopeIdForNode,
   TAP_CONTROL,
 } from '@/components/nodes/effects/scope/scope';
-import { isProbe, roleOf, OUTPUT_TYPE, type SignalDefinitions } from './graph';
+import {
+  isProbe,
+  portOf,
+  roleOf,
+  OUTPUT_TYPE,
+  type SignalDefinitions,
+} from './graph';
+
+const merge = (inputs: string[]) =>
+  inputs.length === 1 ? inputs[0] : `stack(${inputs.join(', ')})`;
 
 /**
  * `portable` is what plays and what people copy. `engine` adds one silent tap
@@ -39,16 +48,28 @@ export function compilePatch(
             result = definition.generatePattern(node.data, '').trim() || null;
           }
         } else {
-          const inputs = edges
+          const wired = edges
             .filter((edge) => edge.target === id)
-            .map(through)
-            .filter((input): input is string => input !== null);
-          if (inputs.length > 0) {
-            const input =
-              inputs.length === 1 ? inputs[0] : `stack(${inputs.join(', ')})`;
+            .map((edge) => ({ edge, input: through(edge) }))
+            .filter(
+              (item): item is { edge: Edge; input: string } =>
+                item.input !== null,
+            );
+          if (wired.length > 0) {
+            const input = merge(wired.map((item) => item.input));
+            const ports = definition.ports ?? [];
+            const inputs = Object.fromEntries(
+              ports.map((port) => {
+                const here = wired
+                  .filter((item) => portOf(item.edge, ports) === port)
+                  .map((item) => item.input);
+                return [port, here.length ? merge(here) : ''];
+              }),
+            );
             result = isProbe(node)
               ? input
-              : definition.generatePattern(node.data, input).trim() || null;
+              : definition.generatePattern(node.data, input, inputs).trim() ||
+                null;
           }
         }
       } finally {

@@ -45,6 +45,8 @@ export type NodeDefinition = {
   category: 'Instruments' | 'Synths' | 'Audio Effects' | 'Utility' | 'Output';
   icon: keyof typeof iconMapping;
   order?: number;
+  /** Named input ports; wires into the node are grouped by `targetHandle`. */
+  ports?: readonly string[];
   parameters: Parameters;
   defaults: Record<string, unknown>;
   getValues: (data: Record<string, unknown>) => Record<string, string | number>;
@@ -52,7 +54,11 @@ export type NodeDefinition = {
     data: Record<string, unknown>,
     updates: Record<string, unknown>,
   ) => Record<string, unknown>;
-  generatePattern: (data: Record<string, unknown>, input: string) => string;
+  generatePattern: (
+    data: Record<string, unknown>,
+    input: string,
+    inputs?: Record<string, string>,
+  ) => string;
   renderControls?: (
     data: Record<string, unknown>,
     update: (data: Record<string, unknown>) => void,
@@ -87,6 +93,7 @@ export function defineNode<
   category: NodeDefinition['category'];
   icon: NodeDefinition['icon'];
   order?: number;
+  ports?: readonly string[];
   parameters: P;
   defaults?: D;
   read?: (data: Record<string, unknown>) => Record<string, unknown>;
@@ -97,7 +104,12 @@ export function defineNode<
   generate: (
     values: D & ParameterValues<P>,
     input: string,
-    context: { parameters: P; data: Record<string, unknown> },
+    context: {
+      parameters: P;
+      data: Record<string, unknown>;
+      /** Input per port (`''` when unwired); empty for nodes without ports. */
+      inputs: Record<string, string>;
+    },
   ) => string;
   component?: ComponentType<NodeControlsProps<P, D>>;
 }): NodeDefinition {
@@ -143,8 +155,8 @@ export function defineNode<
         write ? write(resolve({}), {}) : parameterValues(parameters, {}),
       ),
     },
-    generatePattern: (data, input) =>
-      generate(resolve(data), input, { parameters, data }),
+    generatePattern: (data, input, inputs = {}) =>
+      generate(resolve(data), input, { parameters, data, inputs }),
     renderControls: component
       ? (data, update, context) =>
           createElement(component, {

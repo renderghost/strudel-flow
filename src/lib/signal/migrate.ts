@@ -2,7 +2,9 @@ import type { Edge, XYPosition } from '@xyflow/react';
 import type { AppNode } from '@/components/nodes/types';
 import type { GraphSnapshot } from '@/lib/graph-history';
 import {
+  assignPort,
   isProbe,
+  portOf,
   roleOf,
   wouldCreateCycle,
   type SignalDefinitions,
@@ -50,7 +52,11 @@ export function migrateGraph(
       if (role(from) === 'instrument') continue;
       edge = reversed(edge);
     }
-    const key = `${edge.source}>${edge.target}`;
+    edge = assignPort(edge, nodes, normalised, definitions);
+    const target = byId.get(edge.target)!;
+    const ports = definitions[target.type]?.ports;
+    const port = ports?.length ? portOf(edge, ports) : '';
+    const key = `${edge.source}>${edge.target}>${port}`;
     if (seen.has(key)) continue;
     seen.add(key);
     normalised.push(edge);
