@@ -2,7 +2,7 @@ import { defineNode } from '../define-node';
 export default defineNode({
   id: 'time-node',
   title: 'Time',
-  category: 'Audio Effects',
+  category: 'Utility',
   icon: 'Clock',
   order: 1,
   parameters: {

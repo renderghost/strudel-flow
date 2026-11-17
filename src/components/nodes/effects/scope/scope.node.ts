@@ -5,7 +5,7 @@ import { generatePattern, type ScopeData } from './scope';
 export default defineNode({
   id: 'scope-node',
   title: 'Scope',
-  category: 'Audio Effects',
+  category: 'Utility',
   icon: 'Activity',
   order: 0,
   parameters: {},

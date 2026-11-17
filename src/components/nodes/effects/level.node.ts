@@ -3,7 +3,7 @@ import { defineNode, generateParameterEffects } from '../define-node';
 export default defineNode({
   id: 'level-node',
   title: 'Level',
-  category: 'Audio Effects',
+  category: 'Utility',
   icon: 'Volume2',
   order: 3,
   parameters: {
