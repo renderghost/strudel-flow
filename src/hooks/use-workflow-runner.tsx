@@ -1,7 +1,7 @@
 import '@/lib/strudel-scope';
 import { useEffect, useMemo, useRef } from 'react';
 import { useAppStore } from '@/store/app-store';
-import { generateOutput } from '@/lib/strudel';
+import { compile } from '@/lib/signal';
 import {
   initStrudel,
   evaluate,
@@ -107,10 +107,11 @@ export function useWorkflowRunner() {
 
   const compiled = useMemo(() => {
     try {
-      return { pattern: generateOutput(nodes, edges, cpm, bpc), error: null };
+      return { ...compile(nodes, edges, cpm, bpc), error: null };
     } catch (error) {
       return {
-        pattern: '',
+        engine: '',
+        portable: '',
         error: error instanceof Error ? error.message : String(error),
       };
     }
@@ -131,15 +132,12 @@ export function useWorkflowRunner() {
   }, [setError]);
 
   useEffect(() => {
-    setPattern(compiled.pattern);
+    setPattern(compiled.portable);
     if (compiled.error) setError(compiled.error);
   }, [compiled, setPattern, setError]);
 
   useEffect(() => {
-    const activePattern = compiled.pattern
-      .split('\n')
-      .filter((line) => !line.trim().startsWith('//'))
-      .join('\n');
+    const activePattern = compiled.engine;
     const hasNotes = activePattern.replace(/setcpm\([^)]+\)/g, '').trim();
     if (!isPlaying || !hasNotes || compiled.error) {
       engine.current?.setPattern(null);
@@ -150,5 +148,5 @@ export function useWorkflowRunner() {
       40,
     );
     return () => window.clearTimeout(timer);
-  }, [compiled.pattern, compiled.error, isPlaying]);
+  }, [compiled.engine, compiled.error, isPlaying]);
 }

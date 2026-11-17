@@ -1,7 +1,7 @@
 import { Panel } from '@xyflow/react';
 import logo from '@/assets/logo.svg?raw';
 import { Plus, X } from 'lucide-react';
-import type { MouseEventHandler } from 'react';
+import { useEffect, type MouseEventHandler } from 'react';
 import { ControlButton } from './control-button';
 import { AppearancePopover } from './appearance-popover';
 import { AppInfoPopover } from './app-info-popover';
@@ -9,6 +9,8 @@ import { useAppStore } from '@/store/app-store';
 import { PlayPauseButton } from './play-pause-button';
 import { ZoomSlider } from './zoom-slider';
 import { PresetPopover } from './preset-popover';
+
+const NOTICE_MS = 6000;
 
 export function EditorToolbar({
   onAddNode,
@@ -21,6 +23,13 @@ export function EditorToolbar({
   const setBpc = useAppStore((state) => state.setBpc);
   const error = useAppStore((state) => state.error);
   const setError = useAppStore((state) => state.setError);
+  const notice = useAppStore((state) => state.notice);
+  const setNotice = useAppStore((state) => state.setNotice);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), NOTICE_MS);
+    return () => window.clearTimeout(timer);
+  }, [notice, setNotice]);
 
   return (
     <>
@@ -95,22 +104,39 @@ export function EditorToolbar({
         </div>
       </Panel>
 
-      {error && (
-        <Panel
-          position="top-center"
-          style={{ transform: 'translateX(-50%)' }}
-          className="m-0! mt-36! flex max-w-[min(420px,90vw)] sm:mt-24! items-start gap-3 rounded-md border border-destructive/40 bg-card p-3 text-xs"
-          role="alert"
-        >
-          <span>Couldn’t play this patch. {error}</span>
-          <button
-            aria-label="Dismiss playback error"
-            onClick={() => setError(null)}
+      <Panel
+        position="top-center"
+        style={{ transform: 'translateX(-50%)' }}
+        className="m-0! mt-36! flex max-w-[min(420px,90vw)] flex-col gap-2 sm:mt-24!"
+      >
+        {error && (
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-md border border-destructive/40 bg-card p-3 text-xs"
           >
-            <X className="size-4" />
-          </button>
-        </Panel>
-      )}
+            <span>Couldn’t play this patch. {error}</span>
+            <button
+              aria-label="Dismiss playback error"
+              onClick={() => setError(null)}
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        )}
+        <div role="status" aria-live="polite">
+          {notice && (
+            <div className="flex items-start gap-3 rounded-md border border-border bg-card p-3 text-xs">
+              <span>{notice}</span>
+              <button
+                aria-label="Dismiss notice"
+                onClick={() => setNotice(null)}
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      </Panel>
       <ZoomSlider position="bottom-left" />
       <Panel
         position="top-right"

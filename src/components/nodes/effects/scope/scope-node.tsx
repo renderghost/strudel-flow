@@ -2,10 +2,8 @@ import type { CustomControlsProps } from '../../define-node';
 import type { ScopeData } from './scope';
 import { useEffect, useRef } from 'react';
 import { ParameterKnob } from '../../shared/parameter-knob';
-import { useAppStore } from '@/store/app-store';
-import { findConnectedComponents } from '@/lib/graph-utils';
 import { drawScope } from '@/lib/strudel-scope';
-import { DEFAULT_SCOPE_SCALE, scopeIdForGroup } from './scope';
+import { DEFAULT_SCOPE_SCALE, scopeIdForNode } from './scope';
 
 export function ScopeNode({
   values: data,
@@ -13,13 +11,7 @@ export function ScopeNode({
   isPlaying: playing,
   id,
 }: CustomControlsProps<ScopeData>) {
-  const scopeId = useAppStore((state) =>
-    scopeIdForGroup(
-      findConnectedComponents(state.nodes, state.edges).find((ids) =>
-        ids.includes(id),
-      )?.[0] ?? id,
-    ),
-  );
+  const scopeId = scopeIdForNode(id);
   const canvas = useRef<HTMLCanvasElement>(null);
   const scale = Number(data.scopeScale ?? DEFAULT_SCOPE_SCALE);
 

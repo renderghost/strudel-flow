@@ -13,7 +13,9 @@ import {
 
 import type { AppNode } from '@/components/nodes/registry';
 import { initialEdges, initialNodes } from '@/data/workflow-data';
-import { findConnectedComponents } from '@/lib/graph-utils';
+import { check } from '@/lib/signal';
+import { OUTPUT_TYPE } from '@/lib/signal/graph';
+import { withoutProtectedRemovals } from '@/lib/signal/protect';
 
 type AppState = {
   name: string;
@@ -29,6 +31,7 @@ type AppState = {
   pattern: string;
   isPlaying: boolean;
   error: string | null;
+  notice: string | null;
 };
 
 type AppActions = {
@@ -37,10 +40,11 @@ type AppActions = {
   setPattern: (pattern: string) => void;
   toggle: () => void;
   setError: (error: string | null) => void;
+  setNotice: (notice: string | null) => void;
   setColorMode: (colorMode: ColorMode) => void;
   onNodesChange: OnNodesChange<AppNode>;
   removeNode: (nodeId: string) => void;
-  setGroupState: (nodeId: string, state: 'running' | 'paused') => void;
+  setMuted: (nodeId: string, muted: boolean) => void;
   updateNodeData: (nodeId: string, updates: Record<string, unknown>) => void;
   onConnect: OnConnect;
   setTheme: (theme: string) => void;
@@ -64,46 +68,61 @@ export const useAppStore = create<AppStore>()(
     pattern: '',
     isPlaying: false,
     error: null,
+    notice: null,
     setCpm: (cpm) => set({ cpm }),
     setBpc: (bpc) => set({ bpc }),
     setPattern: (pattern) => set({ pattern }),
     toggle: () =>
       set((state) => ({ isPlaying: !state.isPlaying, error: null })),
     setError: (error) => set({ error, ...(error ? { isPlaying: false } : {}) }),
+    setNotice: (notice) => set({ notice }),
 
     onNodesChange: (changes) => {
-      set({ nodes: applyNodeChanges(changes, get().nodes) });
+      const { nodes } = get();
+      set({
+        nodes: applyNodeChanges(
+          withoutProtectedRemovals(changes, nodes),
+          nodes,
+        ),
+      });
     },
 
     removeNode: (nodeId) =>
+      set((state) =>
+        state.nodes.some(
+          (node) => node.id === nodeId && node.type === OUTPUT_TYPE,
+        )
+          ? {}
+          : {
+              nodes: state.nodes.filter((node) => node.id !== nodeId),
+              edges: state.edges.filter(
+                (edge) => edge.source !== nodeId && edge.target !== nodeId,
+              ),
+            },
+      ),
+
+    setMuted: (nodeId, muted) =>
       set((state) => ({
-        nodes: state.nodes.filter((node) => node.id !== nodeId),
-        edges: state.edges.filter(
-          (edge) => edge.source !== nodeId && edge.target !== nodeId,
+        nodes: state.nodes.map((node) =>
+          node.id === nodeId
+            ? {
+                ...node,
+                data: { ...node.data, state: muted ? 'paused' : 'running' },
+              }
+            : node,
         ),
       })),
-
-    setGroupState: (nodeId, playbackState) =>
-      set((state) => {
-        const group = new Set(
-          findConnectedComponents(state.nodes, state.edges).find((ids) =>
-            ids.includes(nodeId),
-          ) ?? [nodeId],
-        );
-        return {
-          nodes: state.nodes.map((node) =>
-            group.has(node.id)
-              ? { ...node, data: { ...node.data, state: playbackState } }
-              : node,
-          ),
-        };
-      }),
 
     onEdgesChange: (changes) =>
       set({ edges: applyEdgeChanges(changes, get().edges) }),
 
     onConnect: (connection) => {
-      if (connection.source === connection.target) return;
+      const { nodes, edges } = get();
+      const result = check(nodes, edges, connection);
+      if (!result.ok) {
+        set({ notice: result.reason });
+        return;
+      }
       const { source, target, sourceHandle, targetHandle } = connection;
       set({
         edges: addEdge(

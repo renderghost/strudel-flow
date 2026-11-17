@@ -42,7 +42,7 @@ type ControlsContext = Pick<
 export type NodeDefinition = {
   id: string;
   title: string;
-  category: 'Instruments' | 'Synths' | 'Audio Effects';
+  category: 'Instruments' | 'Synths' | 'Audio Effects' | 'Output';
   icon: keyof typeof iconMapping;
   order?: number;
   parameters: Parameters;

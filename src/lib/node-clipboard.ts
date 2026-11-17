@@ -1,8 +1,11 @@
 import { nanoid } from 'nanoid';
 import type { GraphSnapshot } from './graph-history';
+import { OUTPUT_TYPE } from './signal/graph';
 
 export function copySelectedNodes(graph: GraphSnapshot): GraphSnapshot | null {
-  const nodes = graph.nodes.filter((node) => node.selected);
+  const nodes = graph.nodes.filter(
+    (node) => node.selected && node.type !== OUTPUT_TYPE,
+  );
   if (!nodes.length) return null;
   const ids = new Set(nodes.map((node) => node.id));
   return structuredClone({

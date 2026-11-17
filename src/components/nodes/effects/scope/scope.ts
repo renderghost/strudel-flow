@@ -1,6 +1,6 @@
 export type ScopeData = { scopeScale?: string };
 export const DEFAULT_SCOPE_SCALE = 0.25;
-export const scopeIdForGroup = (id: string) => `flow-scope-${id}`;
+export const scopeIdForNode = (id: string) => `flow-scope-${id}`;
 
 export function generatePattern(
   _data: ScopeData,
