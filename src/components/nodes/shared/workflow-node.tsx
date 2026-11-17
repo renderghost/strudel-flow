@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Code2, Ellipsis, Trash2, Volume2, VolumeX } from 'lucide-react';
+import { Ban, Code2, Ellipsis, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { Position } from '@xyflow/react';
 import { WorkflowNodeData, AppNodeType } from '@/components/nodes/registry';
 import { nodeDefinitions } from '@/components/nodes/registry';
@@ -11,11 +11,16 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { overriddenBy } from '@/lib/signal';
+import { colourOf, overriddenBy } from '@/lib/signal';
+import { SWATCH_COUNT } from '@/lib/instrument-colours';
 
 function WorkflowNode({
   id,
@@ -31,10 +36,14 @@ function WorkflowNode({
   const [showCode, setShowCode] = useState(false);
   const removeNode = useAppStore((state) => state.removeNode);
   const setMuted = useAppStore((state) => state.setMuted);
+  const setColour = useAppStore((state) => state.setColour);
   const category = nodeDefinitions[type]?.category;
   const isInstrument = category === 'Instruments';
   const isOutput = category === 'Output';
   const isPaused = isInstrument && data.state === 'paused';
+  const colour = isInstrument ? colourOf({ data }) : null;
+  const accent =
+    colour === null ? undefined : `var(--instrument-${colour + 1})`;
   const overrider = useAppStore((state) =>
     overriddenBy(state.nodes, state.edges, id),
   );
@@ -46,6 +55,13 @@ function WorkflowNode({
         isPaused ? 'border-amber-500/70 ring-1 ring-amber-500/25' : undefined
       }
     >
+      {accent && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[3px] rounded-t-lg"
+          style={{ background: accent }}
+        />
+      )}
       {!isInstrument && (
         <BaseHandle
           position={Position.Left}
@@ -63,6 +79,13 @@ function WorkflowNode({
         />
       )}
       <header className="mb-1 flex h-12 items-center gap-3 px-3">
+        {accent && (
+          <span
+            aria-hidden="true"
+            className="size-2 shrink-0 rounded-full"
+            style={{ background: accent }}
+          />
+        )}
         <h3 className="flex-1 text-[11px] font-semibold tracking-[.16em] uppercase">
           {data.title}
         </h3>
@@ -100,6 +123,41 @@ function WorkflowNode({
                 <Code2 />
                 {showCode ? 'Hide code' : 'View code'}
               </DropdownMenuItem>
+              {isInstrument && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Colour</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup
+                    value={colour === null ? 'none' : String(colour)}
+                    onValueChange={(value) =>
+                      setColour(id, value === 'none' ? null : Number(value))
+                    }
+                    className="grid grid-cols-5 gap-1.5 px-2 pb-2"
+                  >
+                    <DropdownMenuRadioItem
+                      value="none"
+                      aria-label="No colour"
+                      title="No colour"
+                      onSelect={(event) => event.preventDefault()}
+                      className="grid size-6 place-items-center rounded-full border border-border text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring data-[state=checked]:ring-2 data-[state=checked]:ring-foreground"
+                    >
+                      <Ban className="size-3.5" aria-hidden="true" />
+                    </DropdownMenuRadioItem>
+                    {Array.from({ length: SWATCH_COUNT }, (_, index) => (
+                      <DropdownMenuRadioItem
+                        key={index}
+                        value={String(index)}
+                        aria-label={`Colour ${index + 1}`}
+                        title={`Colour ${index + 1}`}
+                        onSelect={(event) => event.preventDefault()}
+                        className="size-6 rounded-full focus-visible:ring-2 focus-visible:ring-ring data-[highlighted]:ring-2 data-[highlighted]:ring-ring data-[state=checked]:ring-2 data-[state=checked]:ring-foreground"
+                        style={{ background: `var(--instrument-${index + 1})` }}
+                      />
+                    ))}
+                  </DropdownMenuRadioGroup>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               {!isOutput && (
                 <DropdownMenuItem
                   variant="destructive"

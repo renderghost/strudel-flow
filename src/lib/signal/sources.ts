@@ -4,7 +4,7 @@ import { SWATCH_COUNT } from '@/lib/instrument-colours';
 import { roleOf, type SignalDefinitions } from './graph';
 
 /** The instrument's swatch index (0-based), or null for no colour. */
-export function colourOf(node: AppNode): number | null {
+export function colourOf(node: Pick<AppNode, 'data'>): number | null {
   const raw = node.data.colour;
   if (raw === null || raw === undefined || raw === '') return null;
   const value = Number(raw);
