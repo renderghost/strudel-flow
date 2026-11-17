@@ -36,6 +36,8 @@ export function pulseHook(bus: PulseBus) {
     time: number,
     hap: { value: Record<string, unknown> },
     now: number,
+    _cps?: number,
+    targetTime?: number,
   ) => {
     const { gain, velocity } = hap.value;
     const loudness =
@@ -43,7 +45,9 @@ export function pulseHook(bus: PulseBus) {
     const intensity = Number.isFinite(loudness)
       ? Math.min(1, Math.max(0, loudness))
       : 1;
-    const delay = Math.max(0, time - now) * 1000;
+    // `time` is the scheduler tick plus its deadline; `targetTime` is when the
+    // note actually sounds, so pulses line up with what you hear.
+    const delay = Math.max(0, (targetTime ?? time) - now) * 1000;
     for (const key of Object.keys(hap.value)) {
       const edgeId = edgeOfMarker(key);
       if (edgeId !== null) bus.emit(edgeId, intensity, delay);

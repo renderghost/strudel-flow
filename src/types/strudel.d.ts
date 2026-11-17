@@ -15,6 +15,7 @@ declare module '@strudel/web' {
 
   export class Pattern {
     analyze(id: string | number): Pattern;
+    withValue(fn: (value: unknown) => unknown): Pattern;
     _scope(options?: { id?: string | number }): Pattern;
     _tscope(options?: { id?: string | number }): Pattern;
   }

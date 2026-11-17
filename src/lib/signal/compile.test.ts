@@ -88,7 +88,7 @@ describe('compilePatch', () => {
       expect(e([A, S, O], [edge('a', 's'), edge('s', 'o')])).toBe(
         [
           'setcpm(120/4)',
-          heard('note("c").set({fe_a_45_s: 1}).set({fe_s_45_o: 1})'),
+          heard(`note("c").flowMark('fe_a_45_s').flowMark('fe_s_45_o')`),
           tap('note("c")', 's'),
         ].join('\n'),
       ));
@@ -97,7 +97,7 @@ describe('compilePatch', () => {
       expect(e([A, S, O], [edge('a', 's'), edge('a', 'o')])).toBe(
         [
           'setcpm(120/4)',
-          heard('note("c").set({fe_a_45_o: 1})'),
+          heard(`note("c").flowMark('fe_a_45_o')`),
           tap('note("c")', 's'),
         ].join('\n'),
       ));
@@ -124,8 +124,8 @@ describe('compilePatch', () => {
         [
           'setcpm(120/4)',
           heard(
-            'note("c").set({fe_a_45_s1: 1}).set({fe_s1_45_f: 1}).fx(2)' +
-              '.set({fe_f_45_s2: 1}).set({fe_s2_45_o: 1})',
+            `note("c").flowMark('fe_a_45_s1').flowMark('fe_s1_45_f').fx(2)` +
+              `.flowMark('fe_f_45_s2').flowMark('fe_s2_45_o')`,
           ),
           tap('note("c")', 's1'),
           tap('note("c").fx(2)', 's2'),
@@ -148,7 +148,7 @@ describe('compilePatch', () => {
       const nodes = [A, F, O];
       const edges = [edge('a', 'f'), edge('f', 'o')];
       expect(e(nodes, edges)).toBe(
-        `setcpm(120/4)\n$: note("c").set({fe_a_45_f: 1}).fx(2).set({fe_f_45_o: 1})${hook}`,
+        `setcpm(120/4)\n$: note("c").flowMark('fe_a_45_f').fx(2).flowMark('fe_f_45_o')${hook}`,
       );
       expect(c(nodes, edges)).toBe('setcpm(120/4)\n$: note("c").fx(2)');
     });
@@ -162,8 +162,8 @@ describe('compilePatch', () => {
       ).toBe(
         [
           'setcpm(120/4)',
-          `$: note("c").set({fe_a_45_f: 1}).fx(2).set({fe_f_45_o: 1})${hook}`,
-          `$: note("c").set({fe_a_45_g: 1}).fx(3).set({fe_g_45_o: 1})${hook}`,
+          `$: note("c").flowMark('fe_a_45_f').fx(2).flowMark('fe_f_45_o')${hook}`,
+          `$: note("c").flowMark('fe_a_45_g').fx(3).flowMark('fe_g_45_o')${hook}`,
         ].join('\n'),
       ));
 
@@ -183,6 +183,29 @@ describe('compilePatch', () => {
       expect(tapLine).not.toContain('fe_');
       expect(tapLine).not.toContain('onTrigger');
     });
+  });
+
+  it('plays the same notes in engine and portable code', () => {
+    const nodes = [A, B, F, G, node('s', 'scope-node'), O];
+    const edges = [
+      edge('a', 'f'),
+      edge('b', 'f'),
+      edge('a', 'g'),
+      edge('f', 's'),
+      edge('s', 'o'),
+      edge('g', 'o'),
+    ];
+    const r = compilePatch(nodes, edges, t, definitions);
+    const audible = r.engine
+      .split('\n')
+      .filter((line) => !line.includes('flowtap'))
+      .map((line) =>
+        line
+          .replace(/\.flowMark\('fe_[A-Za-z0-9_]+'\)/g, '')
+          .replace('.onTrigger(flowPulse, false)', ''),
+      )
+      .join('\n');
+    expect(audible).toBe(r.portable);
   });
 
   it('survives a cycle', () =>

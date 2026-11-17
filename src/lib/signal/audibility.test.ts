@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AppNode } from '@/components/nodes/types';
 import { audibility, isNotHeard } from './audibility';
+import { defineNode } from '@/components/nodes/define-node';
 import { A, B, F, G, O, definitions, edge, node } from './test-fixtures';
 
 const muted = (n: AppNode): AppNode => ({
@@ -60,6 +61,25 @@ describe('audibility', () => {
 
   it('always hears the Output', () =>
     expect(run([O], []).heard.has('o')).toBe(true));
+
+  it('does not hear an instrument that plays nothing', () => {
+    // Like an empty Pad grid: an instrument whose pattern is empty.
+    const silent = defineNode({
+      id: 'silent',
+      title: 'Silent',
+      category: 'Instruments',
+      icon: 'Music',
+      parameters: {},
+      generate: () => '',
+    });
+    const r = audibility(
+      [node('e', 'silent'), F, O],
+      [edge('e', 'f'), edge('f', 'o')],
+      { ...definitions, silent },
+    );
+    expect(r.heard.has('f')).toBe(false);
+    expect(r.live.size).toBe(0);
+  });
 
   it('survives a cycle', () =>
     expect(() =>

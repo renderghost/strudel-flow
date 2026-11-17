@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPulseBus, pulseHook } from './pulse-bus';
-import { edgeOfMarker, markerFor } from './pulse-marker';
+import { edgeOfMarker, markerFor, markValue } from './pulse-marker';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -15,6 +15,16 @@ describe('markers', () => {
   });
 
   it('ignore other controls', () => expect(edgeOfMarker('gain')).toBeNull());
+});
+
+describe('markValue', () => {
+  it('tags notes that are already controls', () =>
+    expect(markValue({ note: 'c' }, 'fe_x')).toEqual({ note: 'c', fe_x: 1 }));
+
+  it('leaves bare values alone, so they fail exactly as in strudel.cc', () => {
+    for (const value of ['c', 3, null, undefined])
+      expect(markValue(value, 'fe_x')).toBe(value);
+  });
 });
 
 describe('pulse bus', () => {
@@ -66,6 +76,16 @@ describe('pulseHook', () => {
       ['a-f', 1],
       ['f-o', 1],
     ]);
+  });
+
+  it('times the pulse to when the note sounds, not the scheduling tick', () => {
+    const { hook, heard } = setup();
+    // Strudel passes (tick time + deadline, hap, tick time, cps, target time)
+    hook(10.25, { value: { fe_a_45_f: 1 } }, 10, 0.5, 10.75);
+    vi.advanceTimersByTime(749);
+    expect(heard).toEqual([]);
+    vi.advanceTimersByTime(1);
+    expect(heard).toEqual([['a-f', 1]]);
   });
 
   it('scales intensity with gain and velocity, capped at 1', () => {

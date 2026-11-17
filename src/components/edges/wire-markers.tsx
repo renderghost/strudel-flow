@@ -8,11 +8,11 @@ export function WireMarkers() {
         <marker
           id={WIRE_ARROW_ID}
           viewBox="0 0 10 10"
-          refX="9"
+          refX="10"
           refY="5"
-          markerWidth="7"
-          markerHeight="7"
-          markerUnits="userSpaceOnUse"
+          markerWidth="6"
+          markerHeight="6"
+          markerUnits="strokeWidth"
           orient="auto-start-reverse"
         >
           <path d="M0 0 L10 5 L0 10 z" style={{ fill: 'var(--primary)' }} />

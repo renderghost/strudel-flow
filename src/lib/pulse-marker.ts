@@ -1,6 +1,9 @@
 /** Global function the engine code calls for every note: see pulse-bus.ts. */
 export const PULSE_HOOK = 'flowPulse';
 
+/** Pattern method the engine code calls to tag notes (registered in the runner). */
+export const MARK_METHOD = 'flowMark';
+
 const PREFIX = 'fe_';
 
 /**
@@ -22,4 +25,15 @@ export function edgeOfMarker(marker: string): string | null {
     .replace(/_(\d+)_/g, (_, code: string) =>
       String.fromCharCode(Number(code)),
     );
+}
+
+/**
+ * Tags a note with a wire marker. Only notes that are already control objects
+ * are tagged: a bare value like "c" must stay bare, so it fails exactly as it
+ * would in strudel.cc instead of turning into a default note.
+ */
+export function markValue(value: unknown, marker: string): unknown {
+  return value !== null && typeof value === 'object'
+    ? { ...value, [marker]: 1 }
+    : value;
 }

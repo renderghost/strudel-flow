@@ -16,11 +16,24 @@ export function audibility(
 ): Audibility {
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const isMuted = (node: AppNode) => node.data.state === 'paused';
+  // Mirrors compile: an instrument whose pattern is empty plays nothing.
+  const plays = (node: AppNode) => {
+    try {
+      return Boolean(
+        definitions[node.type]?.generatePattern(node.data, '').trim(),
+      );
+    } catch {
+      return false;
+    }
+  };
 
   const fed = new Set<string>();
   const pending = nodes
     .filter(
-      (node) => roleOf(node, definitions) === 'instrument' && !isMuted(node),
+      (node) =>
+        roleOf(node, definitions) === 'instrument' &&
+        !isMuted(node) &&
+        plays(node),
     )
     .map((node) => node.id);
   while (pending.length) {

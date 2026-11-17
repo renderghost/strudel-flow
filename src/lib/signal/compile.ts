@@ -4,7 +4,7 @@ import {
   scopeIdForNode,
   TAP_CONTROL,
 } from '@/components/nodes/effects/scope/scope';
-import { markerFor, PULSE_HOOK } from '@/lib/pulse-marker';
+import { MARK_METHOD, markerFor, PULSE_HOOK } from '@/lib/pulse-marker';
 import { isProbe, roleOf, OUTPUT_TYPE, type SignalDefinitions } from './graph';
 
 /**
@@ -32,7 +32,7 @@ export function compilePatch(
     const through = (edge: Edge): string | null => {
       const input = expression(edge.source);
       return input && marked
-        ? `${input}.set({${markerFor(edge.id)}: 1})`
+        ? `${input}.${MARK_METHOD}('${markerFor(edge.id)}')`
         : input;
     };
     const expression = (id: string): string | null => {

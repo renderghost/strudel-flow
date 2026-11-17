@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useAppStore } from '@/store/app-store';
 import { compile } from '@/lib/signal';
 import {
+  Pattern,
   initStrudel,
   evaluate,
   hush,
@@ -11,10 +12,16 @@ import {
 } from '@strudel/web';
 import { setSchedulerNow } from '@/lib/strudel-clock';
 import { pulseHook, pulses } from '@/lib/pulse-bus';
-import { PULSE_HOOK } from '@/lib/pulse-marker';
+import { MARK_METHOD, markValue, PULSE_HOOK } from '@/lib/pulse-marker';
 
-// Engine code calls this for every note (see compile.ts) so wires can pulse.
+// Engine code tags notes with wire markers and reports every note through
+// this hook (see compile.ts), so wires can pulse.
 Object.assign(globalThis, { [PULSE_HOOK]: pulseHook(pulses) });
+Object.assign(Pattern.prototype, {
+  [MARK_METHOD](this: Pattern, marker: string) {
+    return this.withValue((value) => markValue(value, marker));
+  },
+});
 
 const ready: Promise<StrudelSession> = initStrudel().then(
   (session: StrudelSession) => {

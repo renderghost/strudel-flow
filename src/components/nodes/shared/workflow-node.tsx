@@ -64,10 +64,7 @@ function WorkflowNode({
   return (
     <BaseNode
       data-muted={isPaused || undefined}
-      className={cn(
-        isPaused && 'border-amber-500/70 ring-1 ring-amber-500/25',
-        notHeard && 'opacity-60',
-      )}
+      className={cn(isPaused && 'border-amber-500/70 ring-1 ring-amber-500/25')}
     >
       {accent && (
         <span
@@ -226,7 +223,8 @@ function WorkflowNode({
           </button>
         </div>
       )}
-      {children}
+      {/* Dim only the controls: the title and Not heard badge keep full contrast. */}
+      <div className={cn(notHeard && 'opacity-60')}>{children}</div>
       {showCode && <PatternPopup id={id} />}
     </BaseNode>
   );
