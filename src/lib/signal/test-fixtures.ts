@@ -3,6 +3,8 @@ import { defineNode } from '@/components/nodes/define-node';
 import type { AppNode } from '@/components/nodes/types';
 import lpf from '@/components/nodes/effects/lpf.node';
 import time from '@/components/nodes/effects/time.node';
+import level from '@/components/nodes/effects/level.node';
+import { mixerSpec } from '@/components/nodes/utility/mixer/mixer';
 import type { SignalDefinitions } from './graph';
 
 const inst = defineNode({
@@ -51,7 +53,22 @@ const output = defineNode({
   generate: (_values, input) => input,
 });
 
+// Port-aware stand-in: two ports, joined so the order is visible.
+const mix2 = defineNode({
+  id: 'mix2',
+  title: 'Mix',
+  category: 'Utility',
+  icon: 'Zap',
+  ports: ['a', 'b'],
+  parameters: {},
+  generate: (_values, _input, { inputs }) =>
+    [inputs.a, inputs.b].filter(Boolean).join(' + '),
+});
+
 export const definitions: SignalDefinitions = {
+  mix2,
+  level,
+  'mixer-node': defineNode(mixerSpec),
   inst,
   fx,
   lpf,
@@ -70,6 +87,15 @@ export function node(
 
 export function edge(source: string, target: string): Edge {
   return { id: `${source}-${target}`, source, target };
+}
+
+export function portEdge(source: string, target: string, port: string): Edge {
+  return {
+    id: `${source}-${target}-${port}`,
+    source,
+    target,
+    targetHandle: port,
+  };
 }
 
 export const A = node('a', 'inst', { notes: 'c' });

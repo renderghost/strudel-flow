@@ -5,8 +5,9 @@ import {
   type AppNode,
 } from '@/components/nodes/registry';
 import type { GraphSnapshot } from '@/lib/graph-history';
-import { compilePatch, type CompiledPatch } from './compile';
+import { compilePatch, expressionAt, type CompiledPatch } from './compile';
 import {
+  assignPort,
   checkConnection,
   dropRefusal,
   roleOf,
@@ -38,9 +39,16 @@ export function compile(
 export function check(
   nodes: AppNode[],
   edges: Edge[],
-  connection: { source: string; target: string },
+  connection: { source: string; target: string; targetHandle?: string | null },
 ): ConnectionCheck {
   return checkConnection(nodes, edges, connection, nodeDefinitions);
+}
+
+/** Gives a wire into a port-aware node its port (first free) if it has none. */
+export function withPort<
+  C extends { source: string; target: string; targetHandle?: string | null },
+>(connection: C, nodes: AppNode[], edges: Edge[]): C {
+  return assignPort(connection, nodes, edges, nodeDefinitions);
 }
 
 export function refuseDrop(
@@ -50,13 +58,23 @@ export function refuseDrop(
   return dropRefusal(droppedOn, fromHandleType, nodeDefinitions);
 }
 
+/** The code at a node's output (what a mixer's View code shows). */
+export function codeAt(
+  nodes: AppNode[],
+  edges: Edge[],
+  nodeId: string,
+): string | null {
+  return expressionAt(nodes, edges, nodeId, nodeDefinitions);
+}
+
 let lastOverrides: {
   nodes: AppNode[];
   edges: Edge[];
   result: Map<string, string>;
 } | null = null;
 
-export function overriddenBy(
+/** The Overridden badge text for a node, or null. */
+export function overrideNote(
   nodes: AppNode[],
   edges: Edge[],
   nodeId: string,

@@ -21,7 +21,7 @@ import {
 import { iconMapping } from '@/data/icon-mapping';
 import { radialMenuItems } from '@/data/radial-menu';
 import { useAppStore } from '@/store/app-store';
-import { check, refuseDrop } from '@/lib/signal';
+import { check, refuseDrop, withPort } from '@/lib/signal';
 import { getMenuSize } from '@/components/ui/radial-menu/geometry';
 
 type ConnectionHandlers = Pick<
@@ -46,8 +46,16 @@ export function NodeContextMenu({
       const { nodes, edges, setNotice } = useAppStore.getState();
       const connection =
         state.fromHandle.type === 'source'
-          ? { source: state.fromNode.id, target: state.toNode.id }
-          : { source: state.toNode.id, target: state.fromNode.id };
+          ? {
+              source: state.fromNode.id,
+              target: state.toNode.id,
+              targetHandle: state.toHandle.id,
+            }
+          : {
+              source: state.toNode.id,
+              target: state.fromNode.id,
+              targetHandle: state.fromHandle.id,
+            };
       const result = check(nodes, edges, connection);
       if (!result.ok) setNotice(result.reason);
       return;
@@ -133,10 +141,14 @@ export function NodeContextMenu({
       let edges = state.edges;
       let notice = state.notice;
       if (origin && state.nodes.some((node) => node.id === origin.nodeId)) {
-        const connection = connectionToNode(origin, newNode.id);
         const others = origin.edge
           ? edges.filter((edge) => edge.id !== origin.edge!.id)
           : edges;
+        const connection = withPort(
+          connectionToNode(origin, newNode.id),
+          nodes,
+          others,
+        );
         const result = check(nodes, others, connection);
         if (!result.ok) {
           notice = result.reason;

@@ -2,7 +2,9 @@ import type { Edge, XYPosition } from '@xyflow/react';
 import type { AppNode } from '@/components/nodes/types';
 import type { GraphSnapshot } from '@/lib/graph-history';
 import {
+  assignPort,
   isProbe,
+  portOf,
   roleOf,
   wouldCreateCycle,
   type SignalDefinitions,
@@ -37,6 +39,12 @@ export function migrateGraph(
   let nodes = graph.nodes.filter((node) => !droppedOutputs.has(node.id));
   const byId = new Map(nodes.map((node) => [node.id, node]));
 
+  const withKnownPorts = graph.edges.filter((edge) => {
+    const target = byId.get(edge.target);
+    const ports = target && definitions[target.type]?.ports;
+    return Boolean(edge.targetHandle && ports?.includes(edge.targetHandle));
+  });
+
   // 1. Normalise edge direction and drop invalid edges.
   const seen = new Set<string>();
   const normalised: Edge[] = [];
@@ -50,7 +58,17 @@ export function migrateGraph(
       if (role(from) === 'instrument') continue;
       edge = reversed(edge);
     }
-    const key = `${edge.source}>${edge.target}`;
+    // Saved ports count as taken before any link without one is placed.
+    edge = assignPort(
+      edge,
+      nodes,
+      [...withKnownPorts, ...normalised],
+      definitions,
+    );
+    const target = byId.get(edge.target)!;
+    const ports = definitions[target.type]?.ports;
+    const port = ports?.length ? portOf(edge, ports) : '';
+    const key = `${edge.source}>${edge.target}>${port}`;
     if (seen.has(key)) continue;
     seen.add(key);
     normalised.push(edge);

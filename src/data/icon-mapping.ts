@@ -11,6 +11,7 @@ import {
   Filter,
   Waves,
   Activity,
+  SlidersVertical,
 } from 'lucide-react';
 
 export const iconMapping = {
@@ -26,4 +27,5 @@ export const iconMapping = {
   Filter,
   Waves,
   Activity,
+  SlidersVertical,
 };

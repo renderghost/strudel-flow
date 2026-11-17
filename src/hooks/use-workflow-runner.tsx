@@ -10,6 +10,7 @@ import {
   type StrudelSession,
 } from '@strudel/web';
 import { setSchedulerNow } from '@/lib/strudel-clock';
+import { evaluateDelay } from '@/lib/evaluate-delay';
 
 const ready: Promise<StrudelSession> = initStrudel().then(
   (session: StrudelSession) => {
@@ -104,6 +105,7 @@ export function useWorkflowRunner() {
   const setPattern = useAppStore((state) => state.setPattern);
   const isPlaying = useAppStore((state) => state.isPlaying);
   const setError = useAppStore((state) => state.setError);
+  const pendingSince = useRef<number | null>(null);
 
   const compiled = useMemo(() => {
     try {
@@ -140,12 +142,18 @@ export function useWorkflowRunner() {
     const activePattern = compiled.engine;
     const hasNotes = activePattern.replace(/setcpm\([^)]+\)/g, '').trim();
     if (!isPlaying || !hasNotes || compiled.error) {
+      pendingSince.current = null;
       engine.current?.setPattern(null);
       return;
     }
+    const now = performance.now();
+    pendingSince.current ??= now;
     const timer = window.setTimeout(
-      () => engine.current?.setPattern(activePattern),
-      40,
+      () => {
+        pendingSince.current = null;
+        engine.current?.setPattern(activePattern);
+      },
+      evaluateDelay(pendingSince.current, now),
     );
     return () => window.clearTimeout(timer);
   }, [compiled.engine, compiled.error, isPlaying]);

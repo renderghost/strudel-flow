@@ -3,6 +3,7 @@ import { Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { nodeDefinitions } from '../registry';
 import { useAppStore } from '@/store/app-store';
+import { codeAt } from '@/lib/signal';
 
 export default function PatternPopup({
   className = '',
@@ -16,9 +17,21 @@ export default function PatternPopup({
   const node = useAppStore((state) =>
     state.nodes.find((node) => node.id === id),
   );
-  const strudelPattern = node
-    ? nodeDefinitions[node.type]?.generatePattern(node.data, '')
-    : '';
+  const definition = node && nodeDefinitions[node.type];
+  const atOutput = Boolean(definition?.ports?.length);
+  // Port-aware nodes (the mixer) show the code at their output: their own
+  // calls only make sense around what is wired in.
+  const outputCode = useAppStore((state) =>
+    atOutput ? codeAt(state.nodes, state.edges, id) : null,
+  );
+  const wiredIn = useAppStore((state) =>
+    state.edges.some((edge) => edge.target === id),
+  );
+  const strudelPattern = atOutput
+    ? outputCode
+    : node
+      ? definition?.generatePattern(node.data, '')
+      : '';
   const { copy: copyCode, status: copyStatus } = useCopyText(
     strudelPattern ?? '',
   );
@@ -65,7 +78,11 @@ export default function PatternPopup({
       >
         {strudelPattern
           ? strudelPattern.replace(/\./g, '.\u200B')
-          : 'No pattern.'}
+          : atOutput
+            ? wiredIn
+              ? 'Nothing audible.'
+              : 'Nothing wired in.'
+            : 'No pattern.'}
       </pre>
     </div>
   );

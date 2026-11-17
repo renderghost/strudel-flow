@@ -4,8 +4,15 @@ import type { AppNode } from '@/components/nodes/types';
 
 export type SignalDefinition = Pick<
   NodeDefinition,
-  'title' | 'category' | 'generatePattern'
->;
+  | 'title'
+  | 'category'
+  | 'generatePattern'
+  | 'ports'
+  | 'meters'
+  | 'overrides'
+  | 'mutable'
+> &
+  Partial<Pick<NodeDefinition, 'parameters' | 'updateValues'>>;
 export type SignalDefinitions = Record<string, SignalDefinition>;
 
 export const OUTPUT_TYPE = 'output-node';
@@ -68,12 +75,54 @@ export function dropRefusal(
   return null;
 }
 
+/** The port an edge feeds: its own handle when known, else the first port. */
+export function portOf(
+  edge: Pick<Edge, 'targetHandle'>,
+  ports: readonly string[],
+) {
+  return edge.targetHandle && ports.includes(edge.targetHandle)
+    ? edge.targetHandle
+    : ports[0];
+}
+
+type PortConnection = {
+  source: string;
+  target: string;
+  targetHandle?: string | null;
+};
+
+/**
+ * A wire into a port-aware node without a known port goes to the first free
+ * port, else the first port.
+ */
+export function assignPort<C extends PortConnection>(
+  connection: C,
+  nodes: AppNode[],
+  edges: Edge[],
+  definitions: SignalDefinitions,
+): C {
+  const target = nodes.find((node) => node.id === connection.target);
+  const ports = target && definitions[target.type]?.ports;
+  if (!ports?.length) return connection;
+  if (connection.targetHandle && ports.includes(connection.targetHandle))
+    return connection;
+  const used = new Set(
+    edges
+      .filter((edge) => edge.target === connection.target)
+      .map((edge) => portOf(edge, ports)),
+  );
+  return {
+    ...connection,
+    targetHandle: ports.find((port) => !used.has(port)) ?? ports[0],
+  };
+}
+
 export type ConnectionCheck = { ok: true } | { ok: false; reason: string };
 
 export function checkConnection(
   nodes: AppNode[],
   edges: Edge[],
-  connection: { source: string; target: string },
+  connection: PortConnection,
   definitions: SignalDefinitions,
 ): ConnectionCheck {
   const { source, target } = connection;
@@ -86,7 +135,15 @@ export function checkConnection(
     return { ok: false, reason: REFUSAL.outOfOutput };
   if (to && roleOf(to, definitions) === 'instrument')
     return { ok: false, reason: REFUSAL.intoInstrument };
-  if (edges.some((edge) => edge.source === source && edge.target === target))
+  const ports = to && definitions[to.type]?.ports;
+  const samePort = (edge: Edge) =>
+    !ports?.length || portOf(edge, ports) === portOf(connection, ports);
+  if (
+    edges.some(
+      (edge) =>
+        edge.source === source && edge.target === target && samePort(edge),
+    )
+  )
     return { ok: false, reason: REFUSAL.duplicate };
   return { ok: true };
 }
