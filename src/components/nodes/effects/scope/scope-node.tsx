@@ -1,8 +1,7 @@
 import type { CustomControlsProps } from '../../define-node';
 import type { ScopeData } from './scope';
-import { useEffect, useRef } from 'react';
 import { ParameterKnob } from '../../shared/parameter-knob';
-import { drawScope } from '@/lib/strudel-scope';
+import { ScopeCanvas } from '../../shared/scope-canvas';
 import { DEFAULT_SCOPE_SCALE, scopeIdForNode } from './scope';
 
 export function ScopeNode({
@@ -11,43 +10,21 @@ export function ScopeNode({
   isPlaying: playing,
   id,
 }: CustomControlsProps<ScopeData>) {
-  const scopeId = scopeIdForNode(id);
-  const canvas = useRef<HTMLCanvasElement>(null);
   const scale = Number(data.scopeScale ?? DEFAULT_SCOPE_SCALE);
-
-  useEffect(() => {
-    const element = canvas.current;
-    const ctx = element?.getContext('2d');
-    if (!element || !ctx) return;
-    let frame: number;
-    const draw = () => {
-      const ratio = window.devicePixelRatio || 1;
-      const width = Math.round(element.clientWidth * ratio);
-      const height = Math.round(element.clientHeight * ratio);
-      if (element.width !== width || element.height !== height) {
-        element.width = width;
-        element.height = height;
-      }
-      drawScope(
-        ctx,
-        scopeId,
-        Number.isFinite(scale) ? scale : DEFAULT_SCOPE_SCALE,
-        playing,
-      );
-      if (playing) frame = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => cancelAnimationFrame(frame);
-  }, [scopeId, scale, playing]);
 
   return (
     <div className="w-72 max-w-[calc(100vw-32px)] space-y-3 px-4 pb-4">
-      <canvas
-        ref={canvas}
-        role="img"
-        aria-label="Audio waveform"
-        className="h-28 w-full rounded border border-border bg-background text-primary"
-      />
+      <div className="space-y-1">
+        <ScopeCanvas
+          analyserId={scopeIdForNode(id)}
+          scale={Number.isFinite(scale) ? scale : DEFAULT_SCOPE_SCALE}
+          playing={playing}
+          label="Audio waveform"
+        />
+        <p className="text-[10px] text-muted-foreground">
+          Before reverb and delay
+        </p>
+      </div>
       <div className="flex justify-center">
         <ParameterKnob
           label="Scale"

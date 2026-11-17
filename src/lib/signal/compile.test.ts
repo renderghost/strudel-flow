@@ -65,10 +65,65 @@ describe('compilePatch', () => {
   it('wires an instrument straight to Output', () =>
     expect(c([A, O], [edge('a', 'o')])).toBe('setcpm(120/4)\n$: note("c")'));
 
-  it('gives scopes a per-node id', () =>
-    expect(
-      c([A, node('s', 'scope-node'), O], [edge('a', 's'), edge('s', 'o')]),
-    ).toBe('setcpm(120/4)\n$: note("c").analyze("flow-scope-s")'));
+  describe('scopes', () => {
+    const S = node('s', 'scope-node');
+    const S1 = node('s1', 'scope-node');
+    const S2 = node('s2', 'scope-node');
+    const e = (nodes: AppNode[], edges: Edge[]) =>
+      compilePatch(nodes, edges, t, definitions).engine;
+    // A tap that throws falls back to silence, so a Scope can never stop
+    // the patch from playing.
+    const tap = (expr: string, id: string) =>
+      `$: (() => { try { return ${expr}; } catch { return silence; } })().analyze("flow-scope-${id}").flowtap(1)`;
+
+    it('are pass-through in portable code', () =>
+      expect(c([A, S, O], [edge('a', 's'), edge('s', 'o')])).toBe(
+        'setcpm(120/4)\n$: note("c")',
+      ));
+
+    it('are tapped silently in engine code', () =>
+      expect(e([A, S, O], [edge('a', 's'), edge('s', 'o')])).toBe(
+        `setcpm(120/4)\n$: note("c")\n${tap('note("c")', 's')}`,
+      ));
+
+    it('tap a dead-end scope', () =>
+      expect(e([A, S, O], [edge('a', 's'), edge('a', 'o')])).toBe(
+        `setcpm(120/4)\n$: note("c")\n${tap('note("c")', 's')}`,
+      ));
+
+    it('tap a scope with no Output path', () => {
+      const r = compilePatch([A, S], [edge('a', 's')], t, definitions);
+      expect(r.portable).toBe('');
+      expect(r.engine).toBe(`setcpm(120/4)\n${tap('note("c")', 's')}`);
+    });
+
+    it('do not tap a silenced scope', () =>
+      expect(e([muted(A), S, O], [edge('a', 's'), edge('s', 'o')])).toBe(''));
+
+    it('tap each scope at its own position', () => {
+      const nodes = [A, S1, F, S2, O];
+      const edges = [
+        edge('a', 's1'),
+        edge('s1', 'f'),
+        edge('f', 's2'),
+        edge('s2', 'o'),
+      ];
+      expect(c(nodes, edges)).toBe('setcpm(120/4)\n$: note("c").fx(2)');
+      expect(e(nodes, edges)).toBe(
+        [
+          'setcpm(120/4)',
+          '$: note("c").fx(2)',
+          tap('note("c")', 's1'),
+          tap('note("c").fx(2)', 's2'),
+        ].join('\n'),
+      );
+    });
+
+    it('tap a merged scope with stack', () =>
+      expect(
+        e([A, B, S, O], [edge('a', 's'), edge('b', 's'), edge('s', 'o')]),
+      ).toContain(tap('stack(note("c"), note("e"))', 's')));
+  });
 
   it('survives a cycle', () =>
     expect(() =>

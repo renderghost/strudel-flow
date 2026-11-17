@@ -5,7 +5,9 @@ import { vi } from 'vitest';
 vi.mock('@strudel/web', () => ({
   Pattern: class {},
   analysers: {},
-  drawTimeScope: () => {},
+  getAnalyserById: () => ({}),
+  getMasterOutput: () => null,
+  registerControl: () => {},
   transpiler: () => ({ output: '' }),
 }));
 

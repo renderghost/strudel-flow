@@ -20,14 +20,8 @@ declare module '@strudel/web' {
   }
 
   export const analysers: Record<string, AnalyserNode | undefined>;
-  export function drawTimeScope(
-    analyser: AnalyserNode | undefined,
-    options: {
-      id: string;
-      ctx: CanvasRenderingContext2D;
-      scale: number;
-      pos: number;
-      color: string;
-    },
-  ): void;
+  export function getAnalyserById(id: string, fftSize?: number): AnalyserNode;
+  export function registerControl(name: string, ...aliases: string[]): unknown;
+  /** Added by pnpm-patches/@strudel__web@1.2.3.patch. */
+  export function getMasterOutput(): AudioNode | null;
 }

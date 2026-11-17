@@ -1,0 +1,68 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index c9b2376abe2ddf9eb42d14f11b984aadeff8e837..390428f269634defafa2f39f7bd5dc40ef5187c0 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -4566,8 +4566,8 @@ async function id(e, t, n, r, i) {
+     _.stop(ee);
+   } };
+   if (a !== void 0) {
+-    const ee = so[a];
+-    ee && (ee.node.gain.setValueAtTime(1, B), ee.node.gain.linearRampToValueAtTime(0, B + 0.01)), so[a] = W;
++    const ck = t.flowtap ? `flowtap:${t.analyze}:${a}` : a, ee = so[ck];
++    ee && (ee.node.gain.setValueAtTime(1, B), ee.node.gain.linearRampToValueAtTime(0, B + 0.01)), so[ck] = W;
+   }
+   return W;
+ }
+@@ -4739,7 +4739,7 @@ const qi = (e, t = [0, 1]) => {
+   r.connect(i), t.forEach((s, u) => {
+     i.connect(Vi, u % r.channelCount, s % n.destination.channelCount);
+   });
+-}, EC = () => {
++}, flowMasterOutput = () => (Vi == null && gd(), fr), EC = () => {
+   fr != null && (fr.gain.linearRampToValueAtTime(0, Ee().currentTime + 0.01), fr = null);
+ };
+ function xC(e, t, n, r, i) {
+@@ -4903,7 +4903,7 @@ const Hi = async (e, t, n, r) => {
+   ), _r = e.channels != null ? uo(e.channels) : xn;
+   f = On(Mn(f, 1)), h = On(h), Ae = On(Ae), xe = On(xe), ut = On(ut), Jt = On(Jt), f *= Jt;
+   const ct = Math.round(Math.random() * 1e6);
+-  for (let Me = 0; Me <= Nr.size - sd; Me++) {
++  for (let Me = 0; !e.flowtap && Me <= Nr.size - sd; Me++) {
+     const vt = Nr.entries().next(), lt = vt.value[1], ft = vt.value[0], c = t + 0.25;
+     lt?.node?.gain?.linearRampToValueAtTime(0, c), lt?.stop?.(c), Nr.delete(ft);
+   }
+@@ -4916,7 +4916,7 @@ const Hi = async (e, t, n, r) => {
+     const { onTrigger: Me } = Pi(u), lt = await Me(t, e, () => {
+       Tt.forEach((ft) => ft?.disconnect()), Nr.delete(ct);
+     });
+-    lt && (bt = lt.node, Nr.set(ct, lt));
++    lt && (bt = lt.node, e.flowtap || Nr.set(ct, lt));
+   } else
+     throw new Error(`sound ${u} not found! Is it loaded?`);
+   if (!bt)
+@@ -4996,14 +4996,14 @@ const Hi = async (e, t, n, r) => {
+     fe.push(Me);
+   }
+   const pn = new GainNode(i, { gain: h });
+-  fe.push(pn), qi(pn, _r);
++  fe.push(pn), e.flowtap || qi(pn, _r);
+   let Ne;
+-  if (ut > 0 && cn > 0 && Ve > 0) {
++  if (!e.flowtap && ut > 0 && cn > 0 && Ve > 0) {
+     const Me = xC(_e, cn, Ve, t, xn);
+     Ne = Es(pn, Me, ut), Tt.push(Ne);
+   }
+   let Qe;
+-  if (Kt > 0) {
++  if (!e.flowtap && Kt > 0) {
+     let Me;
+     if (Ht !== void 0) {
+       let lt, ft = Pi(Ht);
+@@ -16305,6 +16305,7 @@ export {
+   rh as pan,
+   Rf as panchor,
+   EC as panic,
++  flowMasterOutput as getMasterOutput,
+   ah as panorient,
+   ih as panspan,
+   sh as pansplay,

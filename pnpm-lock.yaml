@@ -171,6 +171,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@strudel/web@1.2.3': 3394148c34d306842a1335a1eff225594c00d0151925ccc84d2e864db962bab0
+
 importers:
 
   .:
@@ -198,7 +201,7 @@ importers:
         version: 1.2.5(@types/react-dom@18.3.7(@types/react@18.3.23))(@types/react@18.3.23)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@strudel/web':
         specifier: ^1.2.3
-        version: 1.2.3
+        version: 1.2.3(patch_hash=3394148c34d306842a1335a1eff225594c00d0151925ccc84d2e864db962bab0)
       '@xyflow/react':
         specifier: ^12.12.1
         version: 12.12.1(@types/react-dom@18.3.7(@types/react@18.3.23))(@types/react@18.3.23)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -3685,7 +3688,7 @@ snapshots:
       escodegen: 2.1.0
       estree-walker: 3.0.3
 
-  '@strudel/web@1.2.3':
+  '@strudel/web@1.2.3(patch_hash=3394148c34d306842a1335a1eff225594c00d0151925ccc84d2e864db962bab0)':
     dependencies:
       '@strudel/core': 1.2.2
       '@strudel/mini': 1.2.2
