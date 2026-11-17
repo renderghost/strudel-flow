@@ -5,7 +5,7 @@ import {
   type AppNode,
 } from '@/components/nodes/registry';
 import type { GraphSnapshot } from '@/lib/graph-history';
-import { compilePatch, type CompiledPatch } from './compile';
+import { compilePatch, expressionAt, type CompiledPatch } from './compile';
 import {
   assignPort,
   checkConnection,
@@ -58,13 +58,23 @@ export function refuseDrop(
   return dropRefusal(droppedOn, fromHandleType, nodeDefinitions);
 }
 
+/** The code at a node's output (what a mixer's View code shows). */
+export function codeAt(
+  nodes: AppNode[],
+  edges: Edge[],
+  nodeId: string,
+): string | null {
+  return expressionAt(nodes, edges, nodeId, nodeDefinitions);
+}
+
 let lastOverrides: {
   nodes: AppNode[];
   edges: Edge[];
   result: Map<string, string>;
 } | null = null;
 
-export function overriddenBy(
+/** The Overridden badge text for a node, or null. */
+export function overrideNote(
   nodes: AppNode[],
   edges: Edge[],
   nodeId: string,

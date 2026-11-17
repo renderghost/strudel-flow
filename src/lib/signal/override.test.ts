@@ -24,7 +24,7 @@ describe('findOverrides', () => {
         [edge('a', 'l1'), edge('l1', 'l2'), edge('l2', 'o')],
         definitions,
       ).get('l1'),
-    ).toBe('Filter'));
+    ).toBe('Overridden by Filter downstream'));
 
   it('does not badge when one path escapes', () =>
     expect(

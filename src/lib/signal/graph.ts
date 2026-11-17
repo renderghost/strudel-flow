@@ -4,8 +4,15 @@ import type { AppNode } from '@/components/nodes/types';
 
 export type SignalDefinition = Pick<
   NodeDefinition,
-  'title' | 'category' | 'generatePattern' | 'ports'
->;
+  | 'title'
+  | 'category'
+  | 'generatePattern'
+  | 'ports'
+  | 'meters'
+  | 'overrides'
+  | 'mutable'
+> &
+  Partial<Pick<NodeDefinition, 'parameters' | 'updateValues'>>;
 export type SignalDefinitions = Record<string, SignalDefinition>;
 
 export const OUTPUT_TYPE = 'output-node';

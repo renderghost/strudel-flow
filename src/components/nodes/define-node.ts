@@ -39,6 +39,14 @@ type ControlsContext = Pick<
   CustomControlsProps<Record<never, never>>,
   'id' | 'isPlaying' | 'isMuted'
 >;
+/** A control this node sets that a node downstream could replace. */
+export type CarriedControl = { call: string; label: string };
+/** How override detection should read a node it can't infer from its code. */
+export type OverrideRules = {
+  carries: (data: Record<string, unknown>) => CarriedControl[];
+  replaces: (data: Record<string, unknown>, port: string | null) => string[];
+};
+
 export type NodeDefinition = {
   id: string;
   title: string;
@@ -59,6 +67,14 @@ export type NodeDefinition = {
     input: string,
     inputs?: Record<string, string>,
   ) => string;
+  /** Extra points to measure silently: meter key → code at that point. */
+  meters?: (
+    data: Record<string, unknown>,
+    inputs: Record<string, string>,
+  ) => Record<string, string>;
+  overrides?: OverrideRules;
+  /** Has a whole-node mute stored as `data.muted`. */
+  mutable?: boolean;
   renderControls?: (
     data: Record<string, unknown>,
     update: (data: Record<string, unknown>) => void,
@@ -111,12 +127,23 @@ export function defineNode<
       inputs: Record<string, string>;
     },
   ) => string;
+  meters?: (
+    values: D & ParameterValues<P>,
+    inputs: Record<string, string>,
+  ) => Record<string, string>;
+  overrides?: {
+    carries: (values: D & ParameterValues<P>) => CarriedControl[];
+    replaces: (values: D & ParameterValues<P>, port: string | null) => string[];
+  };
+  mutable?: boolean;
   component?: ComponentType<NodeControlsProps<P, D>>;
 }): NodeDefinition {
   const {
     parameters,
     component,
     generate,
+    meters,
+    overrides,
     defaults = {} as D,
     read = (data) => data,
     write,
@@ -157,6 +184,11 @@ export function defineNode<
     },
     generatePattern: (data, input, inputs = {}) =>
       generate(resolve(data), input, { parameters, data, inputs }),
+    meters: meters && ((data, inputs) => meters(resolve(data), inputs)),
+    overrides: overrides && {
+      carries: (data) => overrides.carries(resolve(data)),
+      replaces: (data, port) => overrides.replaces(resolve(data), port),
+    },
     renderControls: component
       ? (data, update, context) =>
           createElement(component, {

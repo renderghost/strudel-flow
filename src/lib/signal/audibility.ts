@@ -1,6 +1,8 @@
 import type { Edge } from '@xyflow/react';
 import type { AppNode } from '@/components/nodes/types';
-import { isProbe, roleOf, type SignalDefinitions } from './graph';
+import { isProbe, portOf, roleOf, type SignalDefinitions } from './graph';
+
+const PROBE_INPUT = '__in__';
 
 export type Audibility = {
   /** Nodes whose sound reaches the Output from an unmuted instrument. */
@@ -27,6 +29,34 @@ export function audibility(
     }
   };
 
+  // A wire into a port-aware node (a mixer) only carries sound when that
+  // port plays: not muted, soloed out or at −∞.
+  const passes = new Map<string, boolean>();
+  const carries = (edge: Edge) => {
+    const target = byId.get(edge.target);
+    const ports = target && definitions[target.type]?.ports;
+    if (!target || !ports?.length) return true;
+    const port = portOf(edge, ports);
+    const key = `${target.id}>${port}`;
+    if (!passes.has(key)) {
+      const inputs = Object.fromEntries(
+        ports.map((each) => [each, each === port ? PROBE_INPUT : '']),
+      );
+      let result = false;
+      try {
+        result = Boolean(
+          definitions[target.type]
+            .generatePattern(target.data, PROBE_INPUT, inputs)
+            .trim(),
+        );
+      } catch {
+        result = false;
+      }
+      passes.set(key, result);
+    }
+    return passes.get(key)!;
+  };
+
   const fed = new Set<string>();
   const pending = nodes
     .filter(
@@ -40,7 +70,8 @@ export function audibility(
     const id = pending.pop()!;
     if (fed.has(id) || !byId.has(id)) continue;
     fed.add(id);
-    for (const edge of edges) if (edge.source === id) pending.push(edge.target);
+    for (const edge of edges)
+      if (edge.source === id && carries(edge)) pending.push(edge.target);
   }
 
   const reaches = new Set<string>();
@@ -51,7 +82,8 @@ export function audibility(
     const id = back.pop()!;
     if (reaches.has(id) || !byId.has(id)) continue;
     reaches.add(id);
-    for (const edge of edges) if (edge.target === id) back.push(edge.source);
+    for (const edge of edges)
+      if (edge.target === id && carries(edge)) back.push(edge.source);
   }
 
   const heard = new Set(
@@ -65,7 +97,10 @@ export function audibility(
   );
   const live = new Set(
     edges
-      .filter((edge) => fed.has(edge.source) && reaches.has(edge.target))
+      .filter(
+        (edge) =>
+          fed.has(edge.source) && reaches.has(edge.target) && carries(edge),
+      )
       .map((edge) => edge.id),
   );
   return { heard, live };
@@ -73,7 +108,7 @@ export function audibility(
 
 /**
  * Should this node show "Not heard"? Scopes are probes, the Output is always
- * heard, and muted instruments already say they're muted.
+ * heard, and muted instruments and mixers already say they're muted.
  */
 export function isNotHeard(
   node: AppNode,
@@ -84,5 +119,6 @@ export function isNotHeard(
   const role = roleOf(node, definitions);
   if (role === 'output') return false;
   if (role === 'instrument' && node.data.state === 'paused') return false;
+  if (definitions[node.type]?.mutable && node.data.muted === true) return false;
   return true;
 }

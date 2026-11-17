@@ -1,3 +1,5 @@
+import type { CarriedControl } from '../../define-node';
+
 export const MIXER_TYPE = 'mixer-node';
 export const CHANNELS = 8;
 export const PORTS: readonly string[] = Array.from(
@@ -159,3 +161,36 @@ export function formatPan(pan: number): string {
   if (amount === 0) return 'pan centre';
   return `pan ${amount}% ${pan < 0.5 ? 'left' : 'right'}`;
 }
+
+const CARRIED: CarriedControl[] = [
+  { call: 'pan', label: 'Pan' },
+  { call: 'velocity', label: 'Levels' },
+  { call: 'postgain', label: 'Master' },
+];
+
+/** Everything about the mixer node except its controls component. */
+export const mixerSpec = {
+  id: MIXER_TYPE,
+  title: 'Mixer',
+  category: 'Utility' as const,
+  icon: 'SlidersVertical' as const,
+  order: 4,
+  ports: PORTS,
+  parameters: {},
+  defaults: readMixer({}),
+  mutable: true,
+  read: (data: Record<string, unknown>) => ({ ...data, ...readMixer(data) }),
+  generate: (
+    values: MixerData,
+    _input: string,
+    { inputs }: { inputs: Record<string, string> },
+  ) => mixerCode(values, inputs),
+  meters: (values: MixerData, inputs: Record<string, string>) =>
+    mixerMeters(values, inputs),
+  // Channel volume and master multiply, so they never replace anything
+  // upstream; each channel's pan does.
+  overrides: {
+    carries: () => CARRIED,
+    replaces: () => ['pan'],
+  },
+};

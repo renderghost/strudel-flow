@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { colourOf, isNotHeard, overriddenBy } from '@/lib/signal';
+import { colourOf, isNotHeard, overrideNote } from '@/lib/signal';
 import { SWATCH_COUNT } from '@/lib/instrument-colours';
 
 function WorkflowNode({
@@ -57,8 +57,8 @@ function WorkflowNode({
     const node = state.nodes.find((candidate) => candidate.id === id);
     return node ? isNotHeard(node, state.nodes, state.edges) : false;
   });
-  const overrider = useAppStore((state) =>
-    overriddenBy(state.nodes, state.edges, id),
+  const override = useAppStore((state) =>
+    overrideNote(state.nodes, state.edges, id),
   );
 
   return (
@@ -196,12 +196,12 @@ function WorkflowNode({
           Not heard
         </p>
       )}
-      {overrider && (
+      {override && (
         <p
           role="note"
           className="mx-3 mb-3 w-fit rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] text-muted-foreground"
         >
-          Overridden by {overrider} downstream
+          {override}
         </p>
       )}
       {isPaused && (

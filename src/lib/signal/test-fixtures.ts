@@ -3,6 +3,8 @@ import { defineNode } from '@/components/nodes/define-node';
 import type { AppNode } from '@/components/nodes/types';
 import lpf from '@/components/nodes/effects/lpf.node';
 import time from '@/components/nodes/effects/time.node';
+import level from '@/components/nodes/effects/level.node';
+import { mixerSpec } from '@/components/nodes/utility/mixer/mixer';
 import type { SignalDefinitions } from './graph';
 
 const inst = defineNode({
@@ -65,6 +67,8 @@ const mix2 = defineNode({
 
 export const definitions: SignalDefinitions = {
   mix2,
+  level,
+  'mixer-node': defineNode(mixerSpec),
   inst,
   fx,
   lpf,
