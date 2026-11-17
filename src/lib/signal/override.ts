@@ -13,6 +13,8 @@ export const COMPOSING_CALLS = new Set([
   'analyze',
   'stack',
   'mul',
+  'superimpose',
+  'echoWith',
 ]);
 
 const INPUT_SENTINEL = '__in__';

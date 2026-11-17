@@ -12,6 +12,7 @@ import {
   Waves,
   Activity,
   SlidersVertical,
+  Repeat,
 } from 'lucide-react';
 
 export const iconMapping = {
@@ -28,4 +29,5 @@ export const iconMapping = {
   Waves,
   Activity,
   SlidersVertical,
+  Repeat,
 };

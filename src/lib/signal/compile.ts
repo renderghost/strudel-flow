@@ -1,5 +1,6 @@
 import type { Edge } from '@xyflow/react';
 import type { AppNode } from '@/components/nodes/types';
+import { DEFAULT_TEMPO, type Tempo } from '@/components/nodes/define-node';
 import {
   meterIdFor,
   scopeIdForNode,
@@ -38,6 +39,7 @@ function walker(
   nodes: AppNode[],
   edges: Edge[],
   definitions: SignalDefinitions,
+  tempo: Tempo = DEFAULT_TEMPO,
 ) {
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const memo = new Map<string, string | null>();
@@ -86,7 +88,12 @@ function walker(
           result = isProbe(node)
             ? arriving.input
             : definition
-                .generatePattern(node.data, arriving.input, arriving.inputs)
+                .generatePattern(
+                  node.data,
+                  arriving.input,
+                  arriving.inputs,
+                  tempo,
+                )
                 .trim() || null;
         }
       }
@@ -99,14 +106,23 @@ function walker(
   return { expression, through, inputsOf };
 }
 
+/** The tempo fields as stored (strings) → numbers, with the usual defaults. */
+export function parseTempo(cpm: string, bpc: string): Tempo {
+  return {
+    bpm: parseInt(cpm) || DEFAULT_TEMPO.bpm,
+    bpc: parseInt(bpc) || DEFAULT_TEMPO.bpc,
+  };
+}
+
 /** The code at a node's output, or null when nothing plays there. */
 export function expressionAt(
   nodes: AppNode[],
   edges: Edge[],
   nodeId: string,
   definitions: SignalDefinitions,
+  tempo?: Tempo,
 ): string | null {
-  return walker(nodes, edges, definitions).expression(nodeId);
+  return walker(nodes, edges, definitions, tempo).expression(nodeId);
 }
 
 export function compilePatch(
@@ -115,7 +131,11 @@ export function compilePatch(
   tempo: { cpm: string; bpc: string },
   definitions: SignalDefinitions,
 ): CompiledPatch {
-  const { expression, through, inputsOf } = walker(nodes, edges, definitions);
+  const { bpm, bpc: beatsPerCycle } = parseTempo(tempo.cpm, tempo.bpc);
+  const { expression, through, inputsOf } = walker(nodes, edges, definitions, {
+    bpm,
+    bpc: beatsPerCycle,
+  });
   const output = nodes.find((node) => node.type === OUTPUT_TYPE);
   const intoOutput = output
     ? edges.filter((edge) => edge.target === output.id)
@@ -140,8 +160,6 @@ export function compilePatch(
       .map(([key, code]) => tap(code, meterIdFor(node.id, key), METER_FFT));
   });
 
-  const bpm = parseInt(tempo.cpm) || 120;
-  const beatsPerCycle = parseInt(tempo.bpc) || 4;
   const program = (body: string[]) =>
     body.length ? `setcpm(${bpm}/${beatsPerCycle})\n${body.join('\n')}` : '';
   return {
