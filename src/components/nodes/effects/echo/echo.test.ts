@@ -173,8 +173,12 @@ describe('tape echo', () => {
   it('survives bare values', () =>
     expect(() => run(echoCode(echo(base), 'pure("c")', tempo))).not.toThrow());
 
-  it('produces nothing with nothing wired in', () =>
-    expect(echoCode(echo(), '', tempo)).toBe(''));
+  it('shows its own calls with nothing wired in, like other effects', () => {
+    expect(echoCode(echo(), '', tempo)).toMatch(/^superimpose\(/);
+    expect(echoCode(echo({ mode: 'clean' }), '', tempo)).toBe(
+      'delay(0.6).delaytime(0.375).delayfeedback(0.5)',
+    );
+  });
 });
 
 describe('clean echo', () => {

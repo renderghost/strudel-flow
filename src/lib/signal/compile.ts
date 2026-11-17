@@ -106,6 +106,14 @@ function walker(
   return { expression, through, inputsOf };
 }
 
+/** The tempo fields as stored (strings) → numbers, with the usual defaults. */
+export function parseTempo(cpm: string, bpc: string): Tempo {
+  return {
+    bpm: parseInt(cpm) || DEFAULT_TEMPO.bpm,
+    bpc: parseInt(bpc) || DEFAULT_TEMPO.bpc,
+  };
+}
+
 /** The code at a node's output, or null when nothing plays there. */
 export function expressionAt(
   nodes: AppNode[],
@@ -123,8 +131,7 @@ export function compilePatch(
   tempo: { cpm: string; bpc: string },
   definitions: SignalDefinitions,
 ): CompiledPatch {
-  const bpm = parseInt(tempo.cpm) || 120;
-  const beatsPerCycle = parseInt(tempo.bpc) || 4;
+  const { bpm, bpc: beatsPerCycle } = parseTempo(tempo.cpm, tempo.bpc);
   const { expression, through, inputsOf } = walker(nodes, edges, definitions, {
     bpm,
     bpc: beatsPerCycle,

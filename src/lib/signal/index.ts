@@ -5,7 +5,12 @@ import {
   type AppNode,
 } from '@/components/nodes/registry';
 import type { GraphSnapshot } from '@/lib/graph-history';
-import { compilePatch, expressionAt, type CompiledPatch } from './compile';
+import {
+  compilePatch,
+  expressionAt,
+  parseTempo,
+  type CompiledPatch,
+} from './compile';
 import {
   assignPort,
   checkConnection,
@@ -63,9 +68,19 @@ export function codeAt(
   nodes: AppNode[],
   edges: Edge[],
   nodeId: string,
+  cpm: string,
+  bpc: string,
 ): string | null {
-  return expressionAt(nodes, edges, nodeId, nodeDefinitions);
+  return expressionAt(
+    nodes,
+    edges,
+    nodeId,
+    nodeDefinitions,
+    parseTempo(cpm, bpc),
+  );
 }
+
+export { parseTempo };
 
 let lastOverrides: {
   nodes: AppNode[];

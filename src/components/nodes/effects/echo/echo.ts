@@ -118,12 +118,17 @@ function repeatValue(data: EchoData): string {
   return `(v) => typeof v !== 'object' ? v : { ...v, ${fields.join(', ')} }`;
 }
 
-/** The echo's code around its input: tape repeats or the stock delay. */
+/**
+ * The echo's code around its input: tape repeats or the stock delay. With no
+ * input it shows just its own calls, like other effects' View code.
+ */
 export function echoCode(data: EchoData, input: string, tempo: Tempo): string {
-  if (!input) return '';
+  const after = (calls: string) => (input ? `${input}.${calls}` : calls);
   if (data.mode === 'clean') {
     const feedback = Math.min(data.intensity, CLEAN_INTENSITY_MAX);
-    return `${input}.delay(${round(data.volume)}).delaytime(${rateSeconds(data, tempo)}).delayfeedback(${round(feedback)})`;
+    return after(
+      `delay(${round(data.volume)}).delaytime(${rateSeconds(data, tempo)}).delayfeedback(${round(feedback)})`,
+    );
   }
   const count = repeatsPerHead(data);
   if (count === 0) return input;
@@ -136,7 +141,9 @@ export function echoCode(data: EchoData, input: string, tempo: Tempo): string {
       `(p) => p.late(${spacing}).echoWith(${count}, ${spacing}, (q, i) => q.withValue(${value}))`,
     ];
   });
-  return `${input}.superimpose(\n${trains.map((train) => `  ${train},\n`).join('')})`;
+  return after(
+    `superimpose(\n${trains.map((train) => `  ${train},\n`).join('')})`,
+  );
 }
 
 /** Everything about the Echo node except its controls component. */

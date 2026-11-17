@@ -3,7 +3,7 @@ import { Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { nodeDefinitions } from '../registry';
 import { useAppStore } from '@/store/app-store';
-import { codeAt } from '@/lib/signal';
+import { codeAt, parseTempo } from '@/lib/signal';
 
 export default function PatternPopup({
   className = '',
@@ -21,8 +21,10 @@ export default function PatternPopup({
   const atOutput = Boolean(definition?.ports?.length);
   // Port-aware nodes (the mixer) show the code at their output: their own
   // calls only make sense around what is wired in.
+  const cpm = useAppStore((state) => state.cpm);
+  const bpc = useAppStore((state) => state.bpc);
   const outputCode = useAppStore((state) =>
-    atOutput ? codeAt(state.nodes, state.edges, id) : null,
+    atOutput ? codeAt(state.nodes, state.edges, id, cpm, bpc) : null,
   );
   const wiredIn = useAppStore((state) =>
     state.edges.some((edge) => edge.target === id),
@@ -30,7 +32,7 @@ export default function PatternPopup({
   const strudelPattern = atOutput
     ? outputCode
     : node
-      ? definition?.generatePattern(node.data, '')
+      ? definition?.generatePattern(node.data, '', {}, parseTempo(cpm, bpc))
       : '';
   const { copy: copyCode, status: copyStatus } = useCopyText(
     strudelPattern ?? '',
