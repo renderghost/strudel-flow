@@ -21,6 +21,7 @@ import {
 import { iconMapping } from '@/data/icon-mapping';
 import { radialMenuItems } from '@/data/radial-menu';
 import { useAppStore } from '@/store/app-store';
+import { check, refuseDrop } from '@/lib/signal';
 import { getMenuSize } from '@/components/ui/radial-menu/geometry';
 
 type ConnectionHandlers = Pick<
@@ -41,14 +42,32 @@ export function NodeContextMenu({
   const openFromHandle: OnConnectEnd = (event, state) => {
     pending.current = null;
     if (state.isValid || !state.fromNode || !state.fromHandle) return;
-    const point = 'changedTouches' in event ? event.changedTouches[0] : event;
-    if (
-      !point ||
-      !document
-        .elementFromPoint(point.clientX, point.clientY)
-        ?.classList.contains('react-flow__pane')
-    )
+    if (state.toNode && state.toHandle) {
+      const { nodes, edges, setNotice } = useAppStore.getState();
+      const connection =
+        state.fromHandle.type === 'source'
+          ? { source: state.fromNode.id, target: state.toNode.id }
+          : { source: state.toNode.id, target: state.fromNode.id };
+      const result = check(nodes, edges, connection);
+      if (!result.ok) setNotice(result.reason);
       return;
+    }
+    const point = 'changedTouches' in event ? event.changedTouches[0] : event;
+    if (!point) return;
+    const under = document.elementFromPoint(point.clientX, point.clientY);
+    if (!under?.classList.contains('react-flow__pane')) {
+      const droppedOnId = under
+        ?.closest('.react-flow__node')
+        ?.getAttribute('data-id');
+      const { nodes, setNotice } = useAppStore.getState();
+      const droppedOn = nodes.find((node) => node.id === droppedOnId);
+      const reason =
+        droppedOn && droppedOn.id !== state.fromNode.id
+          ? refuseDrop(droppedOn, state.fromHandle.type)
+          : null;
+      if (reason) setNotice(reason);
+      return;
+    }
     pending.current = {
       nodeId: state.fromNode.id,
       handleId: state.fromHandle.id ?? null,
@@ -59,9 +78,12 @@ export function NodeContextMenu({
   const handlers: ConnectionHandlers = {
     onConnectEnd: openFromHandle,
     onReconnect: (edge, connection) =>
-      useAppStore.setState((state) => ({
-        edges: reconnectEdge(edge, connection, state.edges),
-      })),
+      useAppStore.setState((state) => {
+        const others = state.edges.filter((other) => other.id !== edge.id);
+        const result = check(state.nodes, others, connection);
+        if (!result.ok) return { notice: result.reason };
+        return { edges: reconnectEdge(edge, connection, state.edges) };
+      }),
     onReconnectEnd: (event, edge, _type, state) => {
       openFromHandle(event, state);
       if (pending.current) pending.current.edge = edge;
@@ -107,14 +129,24 @@ export function NodeContextMenu({
     });
     const origin = pending.current;
     useAppStore.setState((state) => {
+      const nodes = [...state.nodes, newNode];
       let edges = state.edges;
+      let notice = state.notice;
       if (origin && state.nodes.some((node) => node.id === origin.nodeId)) {
         const connection = connectionToNode(origin, newNode.id);
-        edges = origin.edge
-          ? reconnectEdge(origin.edge, connection, edges)
-          : addEdge({ ...connection, type: 'default' }, edges);
+        const others = origin.edge
+          ? edges.filter((edge) => edge.id !== origin.edge!.id)
+          : edges;
+        const result = check(nodes, others, connection);
+        if (!result.ok) {
+          notice = result.reason;
+        } else {
+          edges = origin.edge
+            ? reconnectEdge(origin.edge, connection, edges)
+            : addEdge({ ...connection, type: 'default' }, edges);
+        }
       }
-      return { nodes: [...state.nodes, newNode], edges };
+      return { nodes, edges, notice };
     });
     pending.current = null;
   };

@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { nodeTypes } from '@/components/nodes/registry';
 import deleteEdge from '@/components/edges/delete-edge';
 import { useAppStore } from '@/store/app-store';
+import { check } from '@/lib/signal';
 import { EditorToolbar } from './toolbar';
 import { useUrlState } from '@/hooks/use-url-state';
 import { useWorkflowRunner } from '@/hooks/use-workflow-runner';
@@ -54,6 +55,9 @@ export default function Editor() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            isValidConnection={(connection) =>
+              check(nodes, edges, connection).ok
+            }
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             colorMode={colorMode}

@@ -37,6 +37,13 @@ export const initialNodes: AppNode[] = [
     position: { x: 560, y: 255 },
     data: { title: 'Filter', icon: 'Filter', state: 'running', lpf: '1500 1' },
   },
+  {
+    id: 'output_1',
+    type: 'output-node',
+    position: { x: 1120, y: 140 },
+    deletable: false,
+    data: { title: 'Output', icon: 'Volume2', state: 'running' },
+  },
 ];
 
 export const initialEdges: Edge[] = [
@@ -50,6 +57,12 @@ export const initialEdges: Edge[] = [
     id: 'edge_2',
     source: 'synthSelectNode_1',
     target: 'filter_1',
+    type: 'default',
+  },
+  {
+    id: 'edge_3',
+    source: 'filter_1',
+    target: 'output_1',
     type: 'default',
   },
 ];

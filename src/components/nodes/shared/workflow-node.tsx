@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { overriddenBy } from '@/lib/signal';
 
 function WorkflowNode({
   id,
@@ -29,10 +30,14 @@ function WorkflowNode({
 }) {
   const [showCode, setShowCode] = useState(false);
   const removeNode = useAppStore((state) => state.removeNode);
-  const setGroupState = useAppStore((state) => state.setGroupState);
+  const setMuted = useAppStore((state) => state.setMuted);
   const category = nodeDefinitions[type]?.category;
   const isInstrument = category === 'Instruments';
-  const isPaused = data.state === 'paused';
+  const isOutput = category === 'Output';
+  const isPaused = isInstrument && data.state === 'paused';
+  const overrider = useAppStore((state) =>
+    overriddenBy(state.nodes, state.edges, id),
+  );
 
   return (
     <BaseNode
@@ -41,18 +46,22 @@ function WorkflowNode({
         isPaused ? 'border-amber-500/70 ring-1 ring-amber-500/25' : undefined
       }
     >
-      <BaseHandle
-        position={Position.Left}
-        type="target"
-        aria-label="Patch input"
-        style={{ top: 28 }}
-      />
-      <BaseHandle
-        position={Position.Right}
-        type="source"
-        aria-label="Patch output"
-        style={{ top: 28 }}
-      />
+      {!isInstrument && (
+        <BaseHandle
+          position={Position.Left}
+          type="target"
+          aria-label="Patch input"
+          style={{ top: 28 }}
+        />
+      )}
+      {!isOutput && (
+        <BaseHandle
+          position={Position.Right}
+          type="source"
+          aria-label="Patch output"
+          style={{ top: 28 }}
+        />
+      )}
       <header className="mb-1 flex h-12 items-center gap-3 px-3">
         <h3 className="flex-1 text-[11px] font-semibold tracking-[.16em] uppercase">
           {data.title}
@@ -62,7 +71,7 @@ function WorkflowNode({
             <Button
               variant="ghost"
               aria-label={isPaused ? 'Unmute instrument' : 'Mute instrument'}
-              onClick={() => setGroupState(id, isPaused ? 'running' : 'paused')}
+              onClick={() => setMuted(id, !isPaused)}
               className={cn(
                 'nodrag size-7 rounded-md p-1 text-muted-foreground',
                 isPaused &&
@@ -91,17 +100,27 @@ function WorkflowNode({
                 <Code2 />
                 {showCode ? 'Hide code' : 'View code'}
               </DropdownMenuItem>
-              <DropdownMenuItem
-                variant="destructive"
-                onSelect={() => removeNode(id)}
-              >
-                <Trash2 />
-                Remove
-              </DropdownMenuItem>
+              {!isOutput && (
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={() => removeNode(id)}
+                >
+                  <Trash2 />
+                  Remove
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </header>
+      {overrider && (
+        <p
+          role="note"
+          className="mx-3 mb-3 w-fit rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] text-muted-foreground"
+        >
+          Overridden by {overrider} downstream
+        </p>
+      )}
       {isPaused && (
         <div
           role="status"
@@ -110,11 +129,11 @@ function WorkflowNode({
           <VolumeX className="size-4 shrink-0" aria-hidden="true" />
           <div className="flex-1">
             <p className="text-xs font-semibold">Muted</p>
-            <p className="text-[10px] opacity-80">This group is silent</p>
+            <p className="text-[10px] opacity-80">This instrument is silent</p>
           </div>
           <button
-            aria-label={`Unmute ${data.title} group`}
-            onClick={() => setGroupState(id, 'running')}
+            aria-label={`Unmute ${data.title}`}
+            onClick={() => setMuted(id, false)}
             className="nodrag rounded-md border border-amber-600/30 bg-background/70 px-2 py-1.5 text-xs font-semibold hover:bg-background"
           >
             Unmute
