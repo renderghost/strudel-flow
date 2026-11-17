@@ -97,8 +97,8 @@ describe('rate', () => {
 });
 
 describe('repeatsPerHead', () => {
-  it('stops below −60 dB', () =>
-    expect(repeatsPerHead(echo({ volume: 0.5, intensity: 0.5 }))).toBe(8));
+  it('stops below −48 dB, where repeats are spent', () =>
+    expect(repeatsPerHead(echo({ volume: 0.5, intensity: 0.5 }))).toBe(6));
 
   it('swells for 12 repeats at intensity 1 and above', () =>
     expect(repeatsPerHead(echo({ intensity: 1.2 }))).toBe(12));
@@ -157,6 +157,33 @@ describe('tape echo', () => {
     );
     for (const hap of haps) expect(hap.velocity ?? 1).toBeLessThanOrEqual(1.5);
   });
+
+  it('keeps repeats that land together under the cap', () => {
+    const haps = values(
+      run(
+        echoCode(
+          echo({
+            ...base,
+            intensity: 1.25,
+            volume: 1,
+            heads: [true, true, true],
+          }),
+          'note("c").slow(4)',
+          tempo,
+        ),
+      ),
+    ).filter((hap) => hap.at > 0);
+    const total = new Map<number, number>();
+    for (const hap of haps)
+      total.set(hap.at, (total.get(hap.at) ?? 0) + hap.velocity);
+    expect(Math.max(...total.values())).toBeLessThanOrEqual(1.5);
+  });
+
+  it('keeps playing when a value is null', () =>
+    // Strudel swallows query errors and returns nothing: the dry note would vanish.
+    expect(
+      run(echoCode(echo(base), 'pure(null)', tempo)).length,
+    ).toBeGreaterThan(0));
 
   it('leaves out drive when saturation is off', () =>
     expect(echoCode(echo({ saturation: 0 }), 'note("c")', tempo)).not.toContain(

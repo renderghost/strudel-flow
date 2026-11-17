@@ -45,6 +45,15 @@ describe('echo overrides', () => {
 
   it('lets tape echoes stack', () => expect(twoEchoes('tape').size).toBe(0));
 
+  it('says when a filter after a tape echo replaces its darkening', () =>
+    expect(
+      findOverrides(
+        [A, node('e', 'echo-node'), node('f', 'lpf'), O],
+        [edge('a', 'e'), edge('e', 'f'), edge('f', 'o')],
+        definitions,
+      ).get('e'),
+    ).toBe('Tone overridden by Filter downstream'));
+
   it('badges a clean echo replaced by a later one', () =>
     expect(twoEchoes('clean').get('e1')).toBe('Overridden by Echo downstream'));
 });

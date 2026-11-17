@@ -1,4 +1,4 @@
-import type { Tempo } from '../../define-node';
+import type { CarriedControl, Tempo } from '../../define-node';
 
 export const ECHO_TYPE = 'echo-node';
 
@@ -22,11 +22,17 @@ export const TAPE_INTENSITY_MAX = 1.25;
 export const CLEAN_INTENSITY_MAX = 0.98;
 export const HEADS = 3;
 
-/** Repeats stop below −60 dB, after 12 per head, or 24 in all. */
-const QUIETEST = 0.001;
+/**
+ * Repeats stop below −48 dB (spent, but each would still cost a voice),
+ * after 12 per head, or 24 in all.
+ */
+const QUIETEST = 10 ** (-48 / 20);
 const MAX_PER_HEAD = 12;
 const MAX_REPEATS = 24;
-/** A swelling repeat never goes above +3.5 dB. */
+/**
+ * A swelling repeat never goes above +3.5 dB, even where several heads land
+ * at once: each head gets an equal share of the volume and of this cap.
+ */
 const LOUDEST = 1.5;
 /** Tape bandwidth at the first repeat; Tone lowers it further each repeat. */
 const TAPE_CUTOFF = 8000;
@@ -86,15 +92,18 @@ export function rateCycles(data: EchoData, tempo: Tempo): number {
     : round(((data.ms / 1000) * tempo.bpm) / (60 * tempo.bpc));
 }
 
+const headCount = (data: EchoData) => data.heads.filter(Boolean).length;
+
 /** How many repeats each enabled head plays. */
 export function repeatsPerHead(data: EchoData): number {
-  const { volume, intensity } = data;
+  const { intensity } = data;
+  const heads = headCount(data);
+  const volume = data.volume / heads;
   if (volume <= QUIETEST || intensity <= 0) return 0;
   const audible =
     intensity >= 1
       ? MAX_PER_HEAD
       : Math.floor(Math.log(QUIETEST / volume) / Math.log(intensity));
-  const heads = data.heads.filter(Boolean).length;
   return Math.max(
     0,
     Math.min(audible, MAX_PER_HEAD, Math.floor(MAX_REPEATS / heads)),
@@ -102,20 +111,21 @@ export function repeatsPerHead(data: EchoData): number {
 }
 
 /**
- * Repeat `k = i + 1`: quieter by intensity^k (capped), filtered no brighter
- * than its source, and driven harder each time. Bare (non-object) values pass
- * through untouched.
+ * Repeat `k = i + 1`: quieter by intensity^k (each head's share, capped),
+ * filtered no brighter than its source, and driven harder each time.
+ * Non-object values (bare strings, null) pass through untouched.
  */
 function repeatValue(data: EchoData): string {
+  const heads = headCount(data);
   const fields = [
-    `velocity: (v.velocity ?? 1) * Math.min(${LOUDEST}, ${round(data.volume)} * ${round(data.intensity)} ** (i + 1))`,
+    `velocity: (v.velocity ?? 1) * Math.min(${round(LOUDEST / heads)}, ${round(data.volume / heads)} * ${round(data.intensity)} ** (i + 1))`,
     // `lpf` is stored as `cutoff`.
     `cutoff: Math.min(v.cutoff ?? 20000, ${TAPE_CUTOFF} * ${round(1 - 0.5 * data.tone)} ** (i + 1))`,
     ...(data.saturation > 0
       ? [`shape: Math.min(0.9, ${round(data.saturation / 6)} * (i + 1))`]
       : []),
   ];
-  return `(v) => typeof v !== 'object' ? v : { ...v, ${fields.join(', ')} }`;
+  return `(v) => v === null || typeof v !== 'object' ? v : { ...v, ${fields.join(', ')} }`;
 }
 
 /**
@@ -158,4 +168,23 @@ export const echoSpec = {
   read: (data: Record<string, unknown>) => ({ ...data, ...readEcho(data) }),
   generate: (values: EchoData, input: string, { tempo }: { tempo: Tempo }) =>
     echoCode(values, input, tempo),
+  // Tape writes its darkening and drive inside superimpose, where override
+  // detection can't read them; say what a node downstream could replace.
+  overrides: {
+    carries: (values: EchoData): CarriedControl[] =>
+      values.mode === 'clean'
+        ? [
+            { call: 'delay', label: 'Echo volume' },
+            { call: 'delaytime', label: 'Rate' },
+            { call: 'delayfeedback', label: 'Intensity' },
+          ]
+        : [
+            { call: 'lpf', label: 'Tone' },
+            ...(values.saturation > 0
+              ? [{ call: 'shape', label: 'Saturation' }]
+              : []),
+          ],
+    replaces: (values: EchoData) =>
+      values.mode === 'clean' ? ['delay', 'delaytime', 'delayfeedback'] : [],
+  },
 };
