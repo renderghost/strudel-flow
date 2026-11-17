@@ -127,6 +127,22 @@ describe('port-aware migration', () => {
     ).toEqual(['a>a', 'b>b']);
   });
 
+  it('keeps saved ports when an unassigned link comes first', () => {
+    const { graph } = migrateGraph(
+      {
+        nodes: [A, B, M, O],
+        edges: [edge('a', 'm'), portEdge('b', 'm', 'a'), edge('m', 'o')],
+      },
+      definitions,
+      createOutput,
+    );
+    expect(
+      graph.edges
+        .filter((e) => e.target === 'm')
+        .map((e) => `${e.source}>${e.targetHandle}`),
+    ).toEqual(['a>b', 'b>a']);
+  });
+
   it('keeps one source on two ports', () => {
     const { graph } = migrateGraph(
       {

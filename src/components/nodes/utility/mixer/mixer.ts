@@ -75,45 +75,31 @@ export function factor(db: number): number {
 
 const rounded = (value: number) => Number(value.toPrecision(3));
 
+/** Anything at or under the −60 dB floor is silence. */
+const SILENT_BELOW = 10 ** (FADER_MIN / 20);
+
+const panOf = (channel: Channel) => Number(channel.pan.toFixed(2));
+const levelOf = (channel: Channel) =>
+  channel.fader <= FADER_MIN ? 0 : factor(channel.gain + channel.fader);
+
 function isAudible(channel: Channel, input: string, anySolo: boolean) {
   return (
     Boolean(input) &&
     !channel.muted &&
     (!anySolo || channel.solo) &&
-    channel.fader > FADER_MIN
+    levelOf(channel) > SILENT_BELOW
   );
 }
 
-function channelCode(input: string, channel: Channel): string {
-  const level = rounded(factor(channel.gain + channel.fader));
-  const volume = level === 1 ? '' : `.mul(velocity(${level}))`;
-  // Pan always wins: emitted even at centre, so the knob means what it says.
-  return `${input}${volume}.pan(${Number(channel.pan.toFixed(2))})`;
+/** `input` scaled by `level` (omitted at unity) and panned. */
+function voice(input: string, level: number, pan: number): string {
+  const velocity = rounded(level);
+  const volume = velocity === 1 ? '' : `.mul(velocity(${velocity}))`;
+  return `${input}${volume}.pan(${pan})`;
 }
 
-/** Each audible channel's code, keyed by port. */
-function audibleChannels(
-  data: MixerData,
-  inputs: Record<string, string>,
-): [string, string][] {
-  if (data.muted) return [];
-  const anySolo = data.channels.some((channel) => channel.solo);
-  return PORTS.flatMap((port, index) => {
-    const input = inputs[port] ?? '';
-    const channel = data.channels[index];
-    return isAudible(channel, input, anySolo)
-      ? [[port, channelCode(input, channel)] as [string, string]]
-      : [];
-  });
-}
-
-/** The code at the mixer's output: one line per audible channel, master after. */
-export function mixerCode(
-  data: MixerData,
-  inputs: Record<string, string>,
-): string {
-  if (data.master <= FADER_MIN) return '';
-  const lines = audibleChannels(data, inputs).map(([, code]) => code);
+/** Stacks lines (one per line, for reading) and applies the master. */
+function mix(lines: string[], data: MixerData): string {
   if (lines.length === 0) return '';
   const body =
     lines.length === 1
@@ -123,14 +109,81 @@ export function mixerCode(
   return master === 1 ? body : `${body}.mul(postgain(${master}))`;
 }
 
-/** What each meter measures: every audible strip after its fader, and the master. */
+type Strip = { port: string; input: string; channel: Channel };
+
+function audibleChannels(
+  data: MixerData,
+  inputs: Record<string, string>,
+): Strip[] {
+  if (data.muted) return [];
+  const anySolo = data.channels.some((channel) => channel.solo);
+  return PORTS.flatMap((port, index) => {
+    const input = inputs[port] ?? '';
+    const channel = data.channels[index];
+    return isAudible(channel, input, anySolo) ? [{ port, input, channel }] : [];
+  });
+}
+
+/** The code at the mixer's output: one line per audible channel, master after. */
+export function mixerCode(
+  data: MixerData,
+  inputs: Record<string, string>,
+): string {
+  if (data.master <= FADER_MIN) return '';
+  return mix(
+    audibleChannels(data, inputs).map(({ input, channel }) =>
+      // Pan always wins: emitted even at centre, so the knob means what it says.
+      voice(input, levelOf(channel), panOf(channel)),
+    ),
+    data,
+  );
+}
+
+/** Equal-power pan gains for a mono voice, as superdough's panner applies. */
+const sides = (pan: number) => ({
+  left: Math.cos((pan * Math.PI) / 2),
+  right: Math.sin((pan * Math.PI) / 2),
+});
+
+/**
+ * An analyser averages left and right, so a hard-panned voice would read
+ * 6 dB low. Meter taps are centred instead (each side × 1/√2) and lifted by
+ * √2 times the side's pan gain, so the analyser reads that side exactly.
+ */
+const centredAt = (input: string, level: number) =>
+  voice(input, level * Math.SQRT2, 0.5);
+
+/**
+ * What each meter measures, after fader and pan: every audible strip at its
+ * louder side, and the master's left and right (one tap when they match).
+ */
 export function mixerMeters(
   data: MixerData,
   inputs: Record<string, string>,
 ): Record<string, string> {
-  const meters = Object.fromEntries(audibleChannels(data, inputs));
-  const master = mixerCode(data, inputs);
-  return master ? { ...meters, master } : meters;
+  const strips = audibleChannels(data, inputs);
+  const meters: Record<string, string> = Object.fromEntries(
+    strips.map(({ port, input, channel }) => {
+      const { left, right } = sides(panOf(channel));
+      return [port, centredAt(input, levelOf(channel) * Math.max(left, right))];
+    }),
+  );
+  if (data.master <= FADER_MIN) return meters;
+  const side = (which: 'left' | 'right') =>
+    mix(
+      strips.flatMap(({ input, channel }) => {
+        const level = levelOf(channel) * sides(panOf(channel))[which];
+        return level * Math.SQRT2 > SILENT_BELOW
+          ? [centredAt(input, level)]
+          : [];
+      }),
+      data,
+    );
+  const left = side('left');
+  const right = side('right');
+  if (left) meters['master-l'] = left;
+  if (right && right !== left) meters['master-r'] = right;
+  return meters;
 }
 
 const FADER_SPAN = FADER_MAX - FADER_MIN;

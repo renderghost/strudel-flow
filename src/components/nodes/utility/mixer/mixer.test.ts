@@ -123,7 +123,7 @@ describe('mixerCode', () => {
 });
 
 describe('mixerMeters', () => {
-  it('measures each audible strip after its fader, and the master', () =>
+  it('measures each audible strip after its fader, and both master sides', () =>
     expect(
       mixerMeters(
         mixer([{ fader: -6 }, { muted: true }], { master: -1 }),
@@ -132,8 +132,27 @@ describe('mixerMeters', () => {
     ).toEqual({
       'ch-1': 'a.mul(velocity(0.501)).pan(0.5)',
       'ch-4': 'd.pan(0.5)',
-      master:
+      // Centred: both sides are the same, so one tap serves both.
+      'master-l':
         'stack(\n  a.mul(velocity(0.501)).pan(0.5),\n  d.pan(0.5),\n).mul(postgain(0.891))',
+    }));
+
+  it('reads a panned strip at its louder side, not the average', () =>
+    // Hard left: left = full level; the analyser averages L and R, so the tap
+    // is centred and lifted by √2 to read the left side exactly.
+    expect(mixerMeters(mixer([{ pan: 0 }]), wired({ 1: 'a' }))).toEqual({
+      'ch-1': 'a.mul(velocity(1.41)).pan(0.5)',
+      'master-l': 'a.mul(velocity(1.41)).pan(0.5)',
+    }));
+
+  it('meters each master side from every channel', () =>
+    expect(
+      mixerMeters(mixer([{ pan: 0 }, { pan: 1 }]), wired({ 1: 'a', 2: 'b' })),
+    ).toEqual({
+      'ch-1': 'a.mul(velocity(1.41)).pan(0.5)',
+      'ch-2': 'b.mul(velocity(1.41)).pan(0.5)',
+      'master-l': 'a.mul(velocity(1.41)).pan(0.5)',
+      'master-r': 'b.mul(velocity(1.41)).pan(0.5)',
     }));
 
   it('keeps strip meters when the master is at −∞', () =>
@@ -147,6 +166,15 @@ describe('mixerMeters', () => {
     expect(mixerMeters(mixer([], { muted: true }), wired({ 1: 'a' }))).toEqual(
       {},
     ));
+});
+
+describe('silent channels', () => {
+  it('leaves out a channel whose gain and fader together reach −∞', () => {
+    const data = mixer([{ gain: -24, fader: -40 }]);
+    const inputs = wired({ 1: 'a', 2: 'b' });
+    expect(mixerCode(data, inputs)).toBe('b.pan(0.5)');
+    expect(Object.keys(mixerMeters(data, inputs))).not.toContain('ch-1');
+  });
 });
 
 describe('fader taper', () => {

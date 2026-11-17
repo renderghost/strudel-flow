@@ -27,7 +27,7 @@ describe('mixer meters', () => {
       `$: (() => { try { return note("c").pan(0.5); } catch { return silence; } })().analyze("flow-meter-m-ch-1").fft(6).flowtap(1)`,
     );
     expect(engine).toContain('.analyze("flow-meter-m-ch-3")');
-    expect(engine).toContain('.analyze("flow-meter-m-master")');
+    expect(engine).toContain('.analyze("flow-meter-m-master-l")');
     expect(engine).not.toContain('flow-meter-m-ch-2');
   });
 

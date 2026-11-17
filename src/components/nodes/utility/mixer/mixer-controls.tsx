@@ -35,7 +35,10 @@ function MixerSlider({
   className,
   children,
   pixelsPerTravel,
+  vertical = false,
 }: SliderProps & {
+  /** Drag responds to vertical motion only (faders). */
+  vertical?: boolean;
   /** Drag distance for the whole travel; the element's height when absent. */
   pixelsPerTravel?: number;
 }) {
@@ -73,8 +76,12 @@ function MixerSlider({
         const travel =
           (pixelsPerTravel ?? event.currentTarget.clientHeight) *
           (event.shiftKey ? 6 : 1);
+        // Knobs follow up and right; faders only up, so sideways drift
+        // during a ride doesn't change the level.
         const moved =
-          drag.current.y - event.clientY + event.clientX - drag.current.x;
+          drag.current.y -
+          event.clientY +
+          (vertical ? 0 : event.clientX - drag.current.x);
         const next = Math.min(
           1,
           Math.max(0, drag.current.position + moved / travel),
@@ -181,7 +188,7 @@ type FaderProps = Omit<SliderProps, 'children'> & {
 
 export function MixerFader({ unity, ...props }: FaderProps) {
   return (
-    <MixerSlider {...props} className="h-full w-8">
+    <MixerSlider {...props} vertical className="h-full w-8">
       {(position) => (
         <>
           <span

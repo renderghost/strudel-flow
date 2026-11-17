@@ -24,7 +24,11 @@ import { ClipLight, LevelMeter } from './level-meter';
 import { useMeters } from './use-meters';
 import type { SliderRange } from './slider';
 
-const METER_KEYS = [...PORTS, 'master'];
+/** Strip meters read their own tap; the master reads the louder side. */
+const METER_SOURCES: Record<string, readonly string[]> = {
+  ...Object.fromEntries(PORTS.map((port) => [port, [port]])),
+  master: ['master-l', 'master-r'],
+};
 const FADER: SliderRange = {
   min: FADER_MIN,
   max: FADER_MAX,
@@ -210,7 +214,7 @@ export function MixerNode({
   isPlaying,
 }: CustomControlsProps<MixerData>) {
   const sources = useStripSources(id);
-  const meters = useMeters(id, METER_KEYS, isPlaying);
+  const meters = useMeters(id, METER_SOURCES, isPlaying);
   const updateChannel = (index: number, patch: Partial<Channel>) =>
     onChange({
       channels: values.channels.map((channel, at) =>

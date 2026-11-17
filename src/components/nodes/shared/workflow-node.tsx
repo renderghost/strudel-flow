@@ -117,7 +117,7 @@ function WorkflowNode({
           {isMutable && (
             <Button
               variant="ghost"
-              aria-label={isPaused ? `Unmute ${kind}` : `Mute ${kind}`}
+              aria-label={`Mute ${kind}`}
               aria-pressed={isPaused}
               onClick={() => setPaused(!isPaused)}
               className={cn(

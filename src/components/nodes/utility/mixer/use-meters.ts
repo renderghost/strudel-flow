@@ -25,7 +25,8 @@ function paint(painter: Painter | undefined, state: MeterState) {
  */
 export function useMeters(
   nodeId: string,
-  keys: readonly string[],
+  /** Each meter shown, and the taps it reads (the loudest wins). */
+  sources: Readonly<Record<string, readonly string[]>>,
   playing: boolean,
 ) {
   const painters = useRef(new Map<string, Painter>());
@@ -35,6 +36,7 @@ export function useMeters(
   useEffect(() => {
     states.current.clear();
     setClipped(new Set());
+    const keys = Object.keys(sources);
     for (const key of keys) paint(painters.current.get(key), QUIET);
     if (!playing) return;
     let frame = 0;
@@ -45,7 +47,11 @@ export function useMeters(
       const newlyClipped: string[] = [];
       for (const key of keys) {
         const before = states.current.get(key) ?? QUIET;
-        const peak = peakDb(readAnalyser(meterIdFor(nodeId, key)));
+        const peak = Math.max(
+          ...sources[key].map((tap) =>
+            peakDb(readAnalyser(meterIdFor(nodeId, tap))),
+          ),
+        );
         const after = meterStep(before, peak, seconds);
         if (after.clip && !before.clip) newlyClipped.push(key);
         states.current.set(key, after);
@@ -57,7 +63,7 @@ export function useMeters(
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [nodeId, keys, playing]);
+  }, [nodeId, sources, playing]);
 
   const clear = useCallback((key: string) => {
     const state = states.current.get(key);
