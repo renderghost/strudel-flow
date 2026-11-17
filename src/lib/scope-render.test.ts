@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { traceWaveform } from './scope-render';
+import { drawWaveform, traceWaveform } from './scope-render';
 
 const sine = (amplitude: number, length = 256, phase = 0) =>
   Float32Array.from(
@@ -44,5 +44,40 @@ describe('traceWaveform', () => {
       expect(Number.isFinite(x)).toBe(true);
       expect(Number.isFinite(y)).toBe(true);
     }
+  });
+});
+
+describe('drawWaveform', () => {
+  it('draws one plain line in a single colour: no gradient, no glow', () => {
+    const calls: string[] = [];
+    const ctx = {
+      canvas: { width: 200, height: 100, clientWidth: 100 },
+      strokeStyle: '',
+      lineWidth: 0,
+      shadowBlur: 0,
+      clearRect: () => calls.push('clearRect'),
+      createLinearGradient: () => {
+        calls.push('gradient');
+        return { addColorStop: () => {} };
+      },
+      save: () => {},
+      restore: () => {},
+      beginPath: () => {},
+      moveTo: () => {},
+      lineTo: () => {},
+      stroke: () => calls.push('stroke'),
+    };
+    drawWaveform(
+      ctx as unknown as CanvasRenderingContext2D,
+      [
+        [0, 50],
+        [200, 50],
+      ],
+      'oklch(0.5 0.1 40)',
+    );
+    expect(calls).toEqual(['clearRect', 'stroke']);
+    expect(ctx.strokeStyle).toBe('oklch(0.5 0.1 40)');
+    expect(ctx.shadowBlur).toBe(0);
+    expect(ctx.lineWidth).toBe(3);
   });
 });
