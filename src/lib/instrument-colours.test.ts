@@ -32,8 +32,8 @@ describe('swatchesFor', () => {
   for (const preset of presets) {
     for (const mode of ['light', 'dark'] as const) {
       it(`gives ${preset.name} (${mode}) ${SWATCH_COUNT} legible, distinct swatches`, () => {
-        const { primary, card } = preset[mode];
-        const swatches = swatchesFor(primary, card, mode);
+        const { card } = preset[mode];
+        const swatches = swatchesFor(preset.light.primary, card, mode);
         expect(swatches).toHaveLength(SWATCH_COUNT);
         for (const swatch of swatches)
           expect(contrastRatio(swatch, card)).toBeGreaterThanOrEqual(3);

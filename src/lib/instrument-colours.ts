@@ -54,11 +54,11 @@ const format = ({ l, c, h }: Oklch) =>
   `oklch(${l.toFixed(3)} ${c.toFixed(3)} ${h.toFixed(1)})`;
 
 export function swatchesFor(
-  primary: string,
+  anchor: string,
   card: string,
   mode: 'light' | 'dark',
 ): string[] {
-  const base = parseOklch(primary);
+  const base = parseOklch(anchor);
   const background = parseOklch(card);
   const start = base.c < GREY_CHROMA ? GREY_START_HUE : base.h;
   const step = background.l > 0.5 ? -0.02 : 0.02;
@@ -80,11 +80,11 @@ export function swatchesFor(
 
 /** CSS declarations for one theme mode: `--instrument-1:…;` … `--instrument-8:…;` */
 export function swatchDeclarations(
-  primary: string,
+  anchor: string,
   card: string,
   mode: 'light' | 'dark',
 ): string {
-  return swatchesFor(primary, card, mode)
+  return swatchesFor(anchor, card, mode)
     .map((swatch, i) => `--instrument-${i + 1}:${swatch};`)
     .join('');
 }

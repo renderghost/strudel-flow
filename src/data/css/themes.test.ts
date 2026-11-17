@@ -10,3 +10,21 @@ describe('themeStyles', () => {
     }
   });
 });
+
+describe('instrument swatches across light and dark', () => {
+  const hues = (block: string) =>
+    [...block.matchAll(/--instrument-\d:oklch\([\d.]+ [\d.]+ ([\d.]+)\)/g)].map(
+      (match) => Number(match[1]),
+    );
+
+  for (const [name, css] of Object.entries(themeStyles)) {
+    it(`keeps ${name}'s hues when switching mode`, () => {
+      const [light, dark] = css.split('.dark{').map(hues);
+      expect(light).toHaveLength(8);
+      light.forEach((hue, i) => {
+        const gap = Math.abs(hue - dark[i]) % 360;
+        expect(Math.min(gap, 360 - gap)).toBeLessThanOrEqual(1);
+      });
+    });
+  }
+});

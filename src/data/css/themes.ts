@@ -15,8 +15,10 @@ function declarations(variables: Record<string, string>) {
 
 export const themeStyles: Record<string, string> = {};
 
+// Swatch hues are anchored to the light primary in both modes, so toggling
+// light/dark changes lightness only, never which colour an instrument is.
 for (const preset of presets) {
   themeStyles[preset.name] =
     `:root{${declarations(preset.light)}${swatchDeclarations(preset.light.primary, preset.light.card, 'light')}}` +
-    `.dark{${declarations(preset.dark)}${swatchDeclarations(preset.dark.primary, preset.dark.card, 'dark')}}`;
+    `.dark{${declarations(preset.dark)}${swatchDeclarations(preset.light.primary, preset.dark.card, 'dark')}}`;
 }
