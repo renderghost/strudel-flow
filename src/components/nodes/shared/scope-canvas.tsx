@@ -1,9 +1,5 @@
 import { useEffect, useRef } from 'react';
-import {
-  drawWaveform,
-  themeScopeColors,
-  traceWaveform,
-} from '@/lib/scope-render';
+import { drawWaveform, scopeColour, traceWaveform } from '@/lib/scope-render';
 import { ensureMasterAnalyser, readAnalyser } from '@/lib/strudel-scope';
 
 export function ScopeCanvas({
@@ -39,7 +35,7 @@ export function ScopeCanvas({
       drawWaveform(
         ctx,
         traceWaveform(samples, width, height, scale),
-        themeScopeColors(element),
+        scopeColour(element),
       );
       if (playing) frame = requestAnimationFrame(draw);
     };

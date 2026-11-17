@@ -1,5 +1,4 @@
 export type Point = [x: number, y: number];
-export type ScopeColors = { from: string; to: string };
 
 const SILENCE = 1e-6;
 
@@ -43,34 +42,27 @@ export function traceWaveform(
   });
 }
 
-/** Strokes the trace with a horizontal theme gradient and a soft glow. */
+/** Strokes the trace as one plain line in a single colour. */
 export function drawWaveform(
   ctx: CanvasRenderingContext2D,
   points: Point[],
-  colors: ScopeColors,
+  colour: string,
 ) {
   const { width, height, clientWidth } = ctx.canvas;
   const ratio = clientWidth ? width / clientWidth : 1;
   ctx.clearRect(0, 0, width, height);
-  const gradient = ctx.createLinearGradient(0, 0, width, 0);
-  gradient.addColorStop(0, colors.from);
-  gradient.addColorStop(1, colors.to);
   ctx.save();
-  ctx.strokeStyle = gradient;
-  ctx.lineWidth = 2 * ratio;
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = 1.5 * ratio;
   ctx.lineJoin = 'round';
-  ctx.shadowColor = colors.from;
-  ctx.shadowBlur = 8 * ratio;
   ctx.beginPath();
   points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
   ctx.stroke();
   ctx.restore();
 }
 
-/** Theme chart colours, falling back to the element's text colour. */
-export function themeScopeColors(element: Element): ScopeColors {
+/** The theme's primary colour, falling back to the element's text colour. */
+export function scopeColour(element: Element): string {
   const style = getComputedStyle(element);
-  const read = (name: string) =>
-    style.getPropertyValue(name).trim() || style.color;
-  return { from: read('--chart-1'), to: read('--chart-2') };
+  return style.getPropertyValue('--primary').trim() || style.color;
 }
