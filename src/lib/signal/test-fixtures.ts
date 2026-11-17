@@ -3,7 +3,6 @@ import { defineNode } from '@/components/nodes/define-node';
 import type { AppNode } from '@/components/nodes/types';
 import lpf from '@/components/nodes/effects/lpf.node';
 import time from '@/components/nodes/effects/time.node';
-import output from '@/components/nodes/output/output.node';
 import type { SignalDefinitions } from './graph';
 
 const inst = defineNode({
@@ -38,6 +37,16 @@ const scope = defineNode({
   title: 'Scope',
   category: 'Audio Effects',
   icon: 'Activity',
+  parameters: {},
+  generate: (_values, input) => input,
+});
+
+// Stand-in for the real Output, whose component loads the audio engine.
+const output = defineNode({
+  id: 'output-node',
+  title: 'Output',
+  category: 'Output',
+  icon: 'Volume2',
   parameters: {},
   generate: (_values, input) => input,
 });
