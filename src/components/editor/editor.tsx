@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { nodeTypes } from '@/components/nodes/registry';
 import deleteEdge from '@/components/edges/delete-edge';
+import { WireMarkers } from '@/components/edges/wire-markers';
 import { useAppStore } from '@/store/app-store';
 import { check } from '@/lib/signal';
 import { EditorToolbar } from './toolbar';
@@ -48,6 +49,7 @@ export default function Editor() {
           tabIndex={0}
           aria-label="Patch canvas. Right-click or tap empty space to add nodes."
         >
+          <WireMarkers />
           <ReactFlow
             {...connectionHandlers}
             nodes={nodes}

@@ -4,9 +4,15 @@ import { X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { ButtonEdge } from '@/components/edges/button-edge';
+import { useAppStore } from '@/store/app-store';
+import { audibilityOf } from '@/lib/signal';
+import { WIRE_ARROW_ID } from '@/components/edges/wire-markers';
 
 const DeleteEdge = memo((props: EdgeProps) => {
   const { setEdges } = useReactFlow();
+  const live = useAppStore((state) =>
+    audibilityOf(state.nodes, state.edges).live.has(props.id),
+  );
 
   const onDeleteEdge = () => {
     setEdges((edges) => edges.filter((edge) => edge.id !== props.id));
@@ -15,11 +21,12 @@ const DeleteEdge = memo((props: EdgeProps) => {
   return (
     <ButtonEdge
       {...props}
+      markerEnd={`url(#${WIRE_ARROW_ID})`}
       style={{
         ...props.style,
         stroke: 'var(--primary)',
         strokeWidth: 2,
-        opacity: props.selected ? 1 : 0.4,
+        opacity: props.selected ? 1 : live ? 0.4 : 0.2,
       }}
     >
       {props.selected && (

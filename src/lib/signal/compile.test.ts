@@ -81,14 +81,16 @@ describe('compilePatch', () => {
         'setcpm(120/4)\n$: note("c")',
       ));
 
+    const heard = (expr: string) => `$: ${expr}`;
+
     it('are tapped silently in engine code', () =>
       expect(e([A, S, O], [edge('a', 's'), edge('s', 'o')])).toBe(
-        `setcpm(120/4)\n$: note("c")\n${tap('note("c")', 's')}`,
+        ['setcpm(120/4)', heard('note("c")'), tap('note("c")', 's')].join('\n'),
       ));
 
     it('tap a dead-end scope', () =>
       expect(e([A, S, O], [edge('a', 's'), edge('a', 'o')])).toBe(
-        `setcpm(120/4)\n$: note("c")\n${tap('note("c")', 's')}`,
+        ['setcpm(120/4)', heard('note("c")'), tap('note("c")', 's')].join('\n'),
       ));
 
     it('tap a scope with no Output path', () => {
@@ -112,7 +114,7 @@ describe('compilePatch', () => {
       expect(e(nodes, edges)).toBe(
         [
           'setcpm(120/4)',
-          '$: note("c").fx(2)',
+          heard('note("c").fx(2)'),
           tap('note("c")', 's1'),
           tap('note("c").fx(2)', 's2'),
         ].join('\n'),
@@ -125,6 +127,24 @@ describe('compilePatch', () => {
       ).toContain(tap('stack(note("c"), note("e"))', 's')));
   });
 
+  it('plays the same notes in engine and portable code', () => {
+    const nodes = [A, B, F, G, node('s', 'scope-node'), O];
+    const edges = [
+      edge('a', 'f'),
+      edge('b', 'f'),
+      edge('a', 'g'),
+      edge('f', 's'),
+      edge('s', 'o'),
+      edge('g', 'o'),
+    ];
+    const r = compilePatch(nodes, edges, t, definitions);
+    const audible = r.engine
+      .split('\n')
+      .filter((line) => !line.includes('flowtap'))
+      .join('\n');
+    expect(audible).toBe(r.portable);
+  });
+
   it('survives a cycle', () =>
     expect(() =>
       c(
@@ -133,7 +153,7 @@ describe('compilePatch', () => {
       ),
     ).not.toThrow());
 
-  it('returns identical engine and portable code', () => {
+  it('returns identical engine and portable code without scopes', () => {
     const r = compilePatch([A, O], [edge('a', 'o')], t, definitions);
     expect(r.engine).toBe(r.portable);
   });

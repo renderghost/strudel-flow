@@ -19,50 +19,58 @@ export function compilePatch(
   definitions: SignalDefinitions,
 ): CompiledPatch {
   const byId = new Map(nodes.map((node) => [node.id, node]));
-  const memo = new Map<string, string | null>();
-  const resolving = new Set<string>();
 
-  const expression = (id: string): string | null => {
-    if (memo.has(id)) return memo.get(id)!;
-    if (resolving.has(id)) return null;
-    const node = byId.get(id);
-    const definition = node && definitions[node.type];
-    if (!node || !definition) return null;
-    resolving.add(id);
-    let result: string | null = null;
-    try {
-      if (roleOf(node, definitions) === 'instrument') {
-        if (node.data.state !== 'paused') {
-          result = definition.generatePattern(node.data, '').trim() || null;
+  /** Resolves each node's expression from the wires feeding it. */
+  const walker = () => {
+    const memo = new Map<string, string | null>();
+    const resolving = new Set<string>();
+    const through = (edge: Edge): string | null => expression(edge.source);
+    const expression = (id: string): string | null => {
+      if (memo.has(id)) return memo.get(id)!;
+      if (resolving.has(id)) return null;
+      const node = byId.get(id);
+      const definition = node && definitions[node.type];
+      if (!node || !definition) return null;
+      resolving.add(id);
+      let result: string | null = null;
+      try {
+        if (roleOf(node, definitions) === 'instrument') {
+          if (node.data.state !== 'paused') {
+            result = definition.generatePattern(node.data, '').trim() || null;
+          }
+        } else {
+          const inputs = edges
+            .filter((edge) => edge.target === id)
+            .map(through)
+            .filter((input): input is string => input !== null);
+          if (inputs.length > 0) {
+            const input =
+              inputs.length === 1 ? inputs[0] : `stack(${inputs.join(', ')})`;
+            result = isProbe(node)
+              ? input
+              : definition.generatePattern(node.data, input).trim() || null;
+          }
         }
-      } else {
-        const inputs = edges
-          .filter((edge) => edge.target === id)
-          .map((edge) => expression(edge.source))
-          .filter((input): input is string => input !== null);
-        if (inputs.length > 0) {
-          const input =
-            inputs.length === 1 ? inputs[0] : `stack(${inputs.join(', ')})`;
-          result = isProbe(node)
-            ? input
-            : definition.generatePattern(node.data, input).trim() || null;
-        }
+      } finally {
+        resolving.delete(id);
       }
-    } finally {
-      resolving.delete(id);
-    }
-    memo.set(id, result);
-    return result;
+      memo.set(id, result);
+      return result;
+    };
+    return { expression, through };
   };
 
+  const plain = walker();
   const output = nodes.find((node) => node.type === OUTPUT_TYPE);
-  const lines = output
-    ? edges
-        .filter((edge) => edge.target === output.id)
-        .map((edge) => expression(edge.source))
-        .filter((line): line is string => line !== null)
-        .map((line) => `$: ${line}`)
+  const intoOutput = output
+    ? edges.filter((edge) => edge.target === output.id)
     : [];
+  const lines = intoOutput
+    .map(plain.through)
+    .filter((line): line is string => line !== null)
+    .map((line) => `$: ${line}`);
+  const expression = plain.expression;
+
   const taps = nodes
     .filter(isProbe)
     .map((node) => ({ id: node.id, input: expression(node.id) }))
@@ -77,5 +85,8 @@ export function compilePatch(
   const beatsPerCycle = parseInt(tempo.bpc) || 4;
   const program = (body: string[]) =>
     body.length ? `setcpm(${bpm}/${beatsPerCycle})\n${body.join('\n')}` : '';
-  return { engine: program([...lines, ...taps]), portable: program(lines) };
+  return {
+    engine: program([...lines, ...taps]),
+    portable: program(lines),
+  };
 }
