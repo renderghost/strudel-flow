@@ -1,3 +1,5 @@
 allowBuilds:
   '@tailwindcss/oxide': true
   esbuild: true
+patchedDependencies:
+  '@strudel/web@1.2.3': pnpm-patches/@strudel__web@1.2.3.patch
