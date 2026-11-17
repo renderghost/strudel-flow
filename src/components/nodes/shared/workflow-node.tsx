@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { Ban, Code2, Ellipsis, Trash2, Volume2, VolumeX } from 'lucide-react';
+import {
+  Ban,
+  Check,
+  Code2,
+  Ellipsis,
+  Trash2,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
 import { Position } from '@xyflow/react';
 import { WorkflowNodeData, AppNodeType } from '@/components/nodes/registry';
 import { nodeDefinitions } from '@/components/nodes/registry';
@@ -11,6 +19,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuItemIndicator,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -139,9 +148,13 @@ function WorkflowNode({
                       aria-label="No colour"
                       title="No colour"
                       onSelect={(event) => event.preventDefault()}
-                      className="grid size-6 place-items-center rounded-full border border-border text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring data-[state=checked]:ring-2 data-[state=checked]:ring-foreground"
+                      className={cn(
+                        swatchClass,
+                        'grid place-items-center border border-border text-muted-foreground',
+                      )}
                     >
                       <Ban className="size-3.5" aria-hidden="true" />
+                      <SelectedMark />
                     </DropdownMenuRadioItem>
                     {Array.from({ length: SWATCH_COUNT }, (_, index) => (
                       <DropdownMenuRadioItem
@@ -150,9 +163,11 @@ function WorkflowNode({
                         aria-label={`Colour ${index + 1}`}
                         title={`Colour ${index + 1}`}
                         onSelect={(event) => event.preventDefault()}
-                        className="size-6 rounded-full focus-visible:ring-2 focus-visible:ring-ring data-[highlighted]:ring-2 data-[highlighted]:ring-ring data-[state=checked]:ring-2 data-[state=checked]:ring-foreground"
+                        className={swatchClass}
                         style={{ background: `var(--instrument-${index + 1})` }}
-                      />
+                      >
+                        <SelectedMark />
+                      </DropdownMenuRadioItem>
                     ))}
                   </DropdownMenuRadioGroup>
                   <DropdownMenuSeparator />
@@ -204,3 +219,19 @@ function WorkflowNode({
   );
 }
 export default WorkflowNode;
+
+// Hover and keyboard focus get a ring; the selected swatch gets a check badge,
+// a different shape, so the two can't be confused in any theme.
+const swatchClass =
+  'relative size-6 rounded-full outline-none ring-offset-2 ring-offset-popover data-[highlighted]:ring-2 data-[highlighted]:ring-ring';
+
+function SelectedMark() {
+  return (
+    <DropdownMenuItemIndicator
+      data-selected-mark=""
+      className="absolute -right-1 -bottom-1 grid size-3.5 place-items-center rounded-full bg-foreground text-background"
+    >
+      <Check className="size-2.5" strokeWidth={3} aria-hidden="true" />
+    </DropdownMenuItemIndicator>
+  );
+}

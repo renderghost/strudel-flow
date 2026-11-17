@@ -116,8 +116,20 @@ function DropdownMenuRadioItem({
   );
 }
 
+function DropdownMenuItemIndicator({
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.ItemIndicator>) {
+  return (
+    <DropdownMenuPrimitive.ItemIndicator
+      data-slot="dropdown-menu-item-indicator"
+      {...props}
+    />
+  );
+}
+
 export {
   DropdownMenu,
+  DropdownMenuItemIndicator,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
